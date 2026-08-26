@@ -16,15 +16,19 @@ export interface WorkItemDetail {
     'System.WorkItemType': string;
     'System.Title': string;
     'System.State': string;
+    'System.Tags'?: string;
   };
 }
 
 export type TargetState = 'Resolved' | 'Closed';
 
+export type Platform = 'App' | 'Web';
+
 export interface ProcessedWorkItem {
   id: string;
   title: string;
   type: string;
+  platform: Platform;
   previousState: string;
   newState: TargetState;
   url: string;

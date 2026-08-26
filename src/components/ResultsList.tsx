@@ -13,12 +13,46 @@ export function ResultsList({ results }: Props) {
   const successful = results.filter((r) => r.success);
   const failed = results.filter((r) => !r.success);
 
+  const groups = [
+    { label: 'Bugs - App', items: successful.filter((r) => r.type === 'Bug' && r.platform === 'App') },
+    { label: 'Bugs - Web', items: successful.filter((r) => r.type === 'Bug' && r.platform === 'Web') },
+    { label: 'User Stories - App', items: successful.filter((r) => r.type === 'User Story' && r.platform === 'App') },
+    { label: 'User Stories - Web', items: successful.filter((r) => r.type === 'User Story' && r.platform === 'Web') },
+    { label: 'Issues - App', items: successful.filter((r) => r.type === 'Issue' && r.platform === 'App') },
+    { label: 'Issues - Web', items: successful.filter((r) => r.type === 'Issue' && r.platform === 'Web') },
+  ].filter((g) => g.items.length > 0);
+
+  const buildGroupedText = () =>
+    groups.map((g) => `${g.label}:\n${g.items.map((i) => i.url).join('\n')}`).join('\n\n');
+
   const handleCopy = async () => {
-    const text = successful.map((item) => item.url).join('\n');
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(buildGroupedText());
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const renderItem = (item: ProcessedWorkItem) => (
+    <div
+      key={item.id}
+      className="flex items-center justify-between p-3 bg-green-900/30 border border-green-700 rounded-lg"
+    >
+      <div className="text-left">
+        <span className="text-green-400 font-mono text-sm">#{item.id}</span>
+        <span className="text-gray-300 mx-2">|</span>
+        <span className="text-white">{item.title}</span>
+        <span className="text-gray-300 mx-2">-&gt;</span>
+        <span className="text-green-400 text-sm">{item.newState}</span>
+      </div>
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-400 hover:text-blue-300 text-sm shrink-0 ml-4"
+      >
+        Abrir
+      </a>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
@@ -26,34 +60,12 @@ export function ResultsList({ results }: Props) {
         Resultados ({successful.length}/{results.length} exitosos)
       </h2>
 
-      {successful.length > 0 && (
-        <div className="space-y-2">
-          {successful.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between p-3 bg-green-900/30 border border-green-700 rounded-lg"
-            >
-              <div className="text-left">
-                <span className="text-green-400 font-mono text-sm">#{item.id}</span>
-                <span className="text-gray-300 mx-2">|</span>
-                <span className="text-gray-400 text-sm">{item.type}</span>
-                <span className="text-gray-300 mx-2">|</span>
-                <span className="text-white">{item.title}</span>
-                <span className="text-gray-300 mx-2">-&gt;</span>
-                <span className="text-green-400 text-sm">{item.newState}</span>
-              </div>
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 text-sm shrink-0 ml-4"
-              >
-                Abrir
-              </a>
-            </div>
-          ))}
+      {groups.map((group) => (
+        <div key={group.label} className="space-y-2">
+          <h3 className="text-lg text-green-400">{group.label}</h3>
+          {group.items.map(renderItem)}
         </div>
-      )}
+      ))}
 
       {failed.length > 0 && (
         <div className="space-y-2">
@@ -83,7 +95,7 @@ export function ResultsList({ results }: Props) {
             </button>
           </div>
           <pre className="text-blue-400 text-sm whitespace-pre-wrap break-all">
-            {successful.map((item) => item.url).join('\n')}
+            {buildGroupedText()}
           </pre>
         </div>
       )}

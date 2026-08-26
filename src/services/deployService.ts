@@ -1,6 +1,6 @@
 import type { AzureConfig, ProcessedWorkItem } from '../types/azure';
 import { getPRWorkItems, addLabelToPR } from '../api/pullRequests';
-import { getWorkItem, getTargetState, resolveWorkItem } from '../api/workItems';
+import { getWorkItem, getTargetState, resolveWorkItem, getPlatform, hasTag, addTagToWorkItem } from '../api/workItems';
 
 interface DeployCallbacks {
   onLog: (msg: string) => void;
@@ -32,16 +32,25 @@ export async function executeDeploy(
           const type = detail.fields['System.WorkItemType'];
           const title = detail.fields['System.Title'];
           const previousState = detail.fields['System.State'];
+          const tags = detail.fields['System.Tags'];
           const targetState = getTargetState(type);
+          const platform = getPlatform(tags);
           const url = `https://dev.azure.com/${config.organization}/${config.project}/_workitems/edit/${ref.id}`;
 
-          onLog(`  WI #${ref.id} (${type}): ${previousState} -> ${targetState}`);
+          // Si no tiene tag APP ni FRONTEND, agregar FRONTEND
+          if (!hasTag(tags, 'APP') && !hasTag(tags, 'FRONTEND')) {
+            onLog(`  WI #${ref.id}: agregando tag FRONTEND`);
+            await addTagToWorkItem(config, ref.id, tags, 'FRONTEND');
+          }
+
+          onLog(`  WI #${ref.id} (${type} - ${platform}): ${previousState} -> ${targetState}`);
           await resolveWorkItem(config, ref.id, targetState);
 
           onResult({
             id: ref.id,
             title,
             type,
+            platform,
             previousState,
             newState: targetState,
             url,
@@ -55,6 +64,7 @@ export async function executeDeploy(
             id: ref.id,
             title: '',
             type: '',
+            platform: 'Web',
             previousState: '',
             newState: 'Resolved',
             url: `https://dev.azure.com/${config.organization}/${config.project}/_workitems/edit/${ref.id}`,
