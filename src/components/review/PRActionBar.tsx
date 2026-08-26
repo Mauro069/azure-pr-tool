@@ -10,6 +10,7 @@ interface Props {
   reviewers: PRReviewer[];
   geminiKey: string;
   reviewing: boolean;
+  reviewingFileCount?: number;
   voting: boolean;
   issues: ReviewIssue[];
   reviewDuration: number;
@@ -25,6 +26,7 @@ export function PRActionBar({
   reviewers,
   geminiKey,
   reviewing,
+  reviewingFileCount = 0,
   voting,
   issues,
   reviewDuration,
@@ -62,7 +64,7 @@ export function PRActionBar({
         {geminiKey && (
           <button
             onClick={onAIReview}
-            disabled={reviewing || fileCount === 0}
+            disabled={reviewing || fileCount === 0 || reviewingFileCount > 0}
             className="px-3 py-1.5 text-xs bg-purple-700 hover:bg-purple-600 disabled:bg-gray-600 text-white rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             {reviewing ? 'Revisando...' : issues.length > 0 ? `IA (${issues.length})` : 'Revisar con IA'}

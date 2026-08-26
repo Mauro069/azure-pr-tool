@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { AzureConfig } from '../../types/azure';
+import type { AzureConfig, FileChange } from '../../types/azure';
 import { usePRDetail } from '../../hooks/usePRDetail';
 import { useAIReview } from '../../hooks/useAIReview';
 import { useVote } from '../../hooks/useVote';
@@ -30,7 +30,7 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
     setReviewers,
   } = usePRDetail(config, prId);
 
-  const { issues, reviewing, reviewDuration, startReview } = useAIReview(geminiKey, setStatus);
+  const { issues, reviewing, reviewDuration, reviewingFiles, startReview, reviewFile } = useAIReview(geminiKey, setStatus);
   const { voting, handleVote } = useVote(config, prId, setReviewers);
 
   useEffect(() => {
@@ -49,6 +49,12 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
     }
   }, [prInfo, fileChanges, startReview]);
 
+  const handleFileReview = useCallback((file: FileChange) => {
+    if (prInfo) {
+      reviewFile(prInfo.title, prInfo.description, file);
+    }
+  }, [prInfo, reviewFile]);
+
   if (loadingFiles) {
     return (
       <div className="space-y-4">
@@ -66,6 +72,7 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
         reviewers={reviewers}
         geminiKey={geminiKey}
         reviewing={reviewing}
+        reviewingFileCount={reviewingFiles.size}
         voting={voting}
         issues={issues}
         reviewDuration={reviewDuration}
@@ -103,6 +110,9 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
           issues={issues}
           onBack={handleBack}
           hideBackButton
+          onReviewFile={geminiKey ? handleFileReview : undefined}
+          reviewingFiles={reviewingFiles}
+          reviewing={reviewing}
         />
       )}
 

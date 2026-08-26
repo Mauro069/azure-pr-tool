@@ -13,9 +13,12 @@ interface Props {
   prId: number;
   onThreadsUpdate: () => void;
   collapsed?: boolean;
+  onReviewFile?: (file: FileChange) => void;
+  isReviewingFile?: boolean;
+  isFullReviewing?: boolean;
 }
 
-export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate, collapsed: initialCollapsed = false }: Props) {
+export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate, collapsed: initialCollapsed = false, onReviewFile, isReviewingFile = false, isFullReviewing = false }: Props) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
 
   useEffect(() => {
@@ -126,8 +129,9 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
 
   return (
     <div className={`border rounded-lg overflow-hidden ${hasComments ? 'border-purple-700/50' : 'border-gray-700'}`}>
-      <button
+      <div
         onClick={() => setCollapsed(!collapsed)}
+        role="button"
         className={`w-full flex items-center justify-between px-3 py-2 cursor-pointer transition-colors ${
           collapsed ? 'bg-gray-800 hover:bg-gray-750' : 'bg-gray-800 border-b border-gray-700'
         }`}
@@ -138,10 +142,27 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
           {hasComments && <span className="text-[10px] text-purple-400 shrink-0">{'\uD83D\uDCAC'} {threads.length + issues.length}</span>}
         </div>
         <div className="flex items-center gap-2 shrink-0 text-xs font-mono">
+          {onReviewFile && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onReviewFile(file);
+              }}
+              disabled={isReviewingFile || isFullReviewing}
+              title="Revisar este archivo con IA"
+              className="px-1.5 py-0.5 text-[10px] rounded bg-purple-800/60 hover:bg-purple-700 text-purple-300 hover:text-white disabled:bg-gray-700 disabled:text-gray-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              {isReviewingFile ? (
+                <span className="inline-block animate-pulse">● IA</span>
+              ) : (
+                '✦ IA'
+              )}
+            </button>
+          )}
           {removedCount > 0 && <span className="text-red-400">-{removedCount}</span>}
           {addedCount > 0 && <span className="text-green-400">+{addedCount}</span>}
         </div>
-      </button>
+      </div>
       {!collapsed && (
         <div className="overflow-x-auto bg-gray-900">
           {chunks.map((chunk, ci) => {

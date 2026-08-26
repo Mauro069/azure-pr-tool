@@ -14,9 +14,12 @@ interface Props {
   issues: ReviewIssue[];
   onBack: () => void;
   hideBackButton?: boolean;
+  onReviewFile?: (file: FileChange) => void;
+  reviewingFiles?: Set<string>;
+  reviewing?: boolean;
 }
 
-export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton }: Props) {
+export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton, onReviewFile, reviewingFiles, reviewing }: Props) {
   const { threads, loadingThreads, refresh: refreshThreads } = useThreads(config, prId);
   const [activeFile, setActiveFile] = useState(files[0]?.path ?? '');
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
@@ -106,6 +109,9 @@ export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton
                 prId={prId}
                 onThreadsUpdate={refreshThreads}
                 collapsed={collapsedFiles.has(file.path)}
+                onReviewFile={onReviewFile}
+                isReviewingFile={reviewingFiles?.has(file.path) ?? false}
+                isFullReviewing={reviewing ?? false}
               />
             </div>
           ))}
