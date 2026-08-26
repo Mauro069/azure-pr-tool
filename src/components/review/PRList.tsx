@@ -5,6 +5,7 @@ import { timeAgo } from '../../utils/time';
 import { branchName } from '../../utils/paths';
 import { ReviewerBadges } from './ReviewerBadges';
 import { StatusDot } from './StatusDot';
+import { Select } from '../Select';
 
 const TABS: { key: PRStatusFilter; label: string }[] = [
   { key: 'mine', label: 'Mine' },
@@ -75,26 +76,18 @@ export function PRList({ config }: { config: AzureConfig }) {
           placeholder="Pull Request ID or title"
           className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
         />
-        <select
+        <Select
           value={createdByFilter}
-          onChange={(e) => setCreatedByFilter(e.target.value)}
-          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer"
-        >
-          <option value="">Created by</option>
-          {creators.map((c) => (
-            <option key={c} value={c}>{c}</option>
-          ))}
-        </select>
-        <select
+          onChange={setCreatedByFilter}
+          placeholder="Created by"
+          options={creators.map((c) => ({ value: c, label: c }))}
+        />
+        <Select
           value={targetBranchFilter}
-          onChange={(e) => setTargetBranchFilter(e.target.value)}
-          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer"
-        >
-          <option value="">Target branch</option>
-          {targetBranches.map((b) => (
-            <option key={b} value={b}>{b}</option>
-          ))}
-        </select>
+          onChange={setTargetBranchFilter}
+          placeholder="Target branch"
+          options={targetBranches.map((b) => ({ value: b, label: b }))}
+        />
         {hasFilters && (
           <button
             onClick={clearFilters}
