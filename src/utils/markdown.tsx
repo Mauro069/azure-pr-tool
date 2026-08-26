@@ -2,7 +2,7 @@ import type { JSX } from 'react';
 
 export function renderMarkdown(text: string): (string | JSX.Element)[] {
   const parts: (string | JSX.Element)[] = [];
-  let remaining = text;
+  let remaining = text ?? '';
   let key = 0;
 
   while (remaining.length > 0) {

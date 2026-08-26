@@ -4,6 +4,13 @@ const MODEL = 'gemini-3.6-flash';
 const MAX_RETRIES = 4;
 const RETRY_DELAY_MS = 8000;
 
+function withLineNumbers(content: string): string {
+  return content
+    .split('\n')
+    .map((line, i) => `${i + 1}: ${line}`)
+    .join('\n');
+}
+
 function buildPrompt(
   prTitle: string,
   prDescription: string,
@@ -12,12 +19,12 @@ function buildPrompt(
   const filesSummary = files
     .map((f) => {
       if (f.changeType === 'delete') {
-        return `=== ${f.path} (ELIMINADO) ===\n${f.oldContent}`;
+        return `=== ${f.path} (ELIMINADO) ===\n${withLineNumbers(f.oldContent ?? '')}`;
       }
       if (f.changeType === 'add') {
-        return `=== ${f.path} (NUEVO) ===\n${f.newContent}`;
+        return `=== ${f.path} (NUEVO) ===\n${withLineNumbers(f.newContent ?? '')}`;
       }
-      return `=== ${f.path} (MODIFICADO) ===\n--- ANTES ---\n${f.oldContent}\n\n+++ DESPUÉS +++\n${f.newContent}`;
+      return `=== ${f.path} (MODIFICADO) ===\n--- ANTES ---\n${f.oldContent}\n\n+++ DESPUÉS (usar estos números de línea) +++\n${withLineNumbers(f.newContent ?? '')}`;
     })
     .join('\n\n');
 
@@ -43,7 +50,7 @@ Responde ÚNICAMENTE con un JSON válido, sin texto antes ni después, sin bloqu
   "issues": [
     {
       "file": "ruta/al/archivo.ts",
-      "line": "línea o rango aproximado (ej: 42 o 40-45)",
+      "line": "número de línea exacto de la versión DESPUÉS/NUEVO del archivo (ej: 42 o 40-45)",
       "severity": "bug" | "security" | "improvement" | "suggestion",
       "message": "Descripción concisa del problema y cómo solucionarlo"
     }

@@ -206,6 +206,10 @@ export async function postPRComment(
 
   const normalizedPath = normalizePath(filePath);
 
+  // Obtener la última iteración para posicionar el comentario correctamente
+  const iterations = await getPRIterations(config, prId);
+  const lastIterationId = iterations[iterations.length - 1]?.id ?? 1;
+
   await azureFetch(url, config.pat, {
     method: 'POST',
     body: JSON.stringify({
@@ -215,6 +219,12 @@ export async function postPRComment(
         filePath: normalizedPath,
         rightFileStart: { line: start, offset: 1 },
         rightFileEnd: { line: end, offset: 1 },
+      },
+      pullRequestThreadContext: {
+        iterationContext: {
+          firstComparingIteration: 1,
+          secondComparingIteration: lastIterationId,
+        },
       },
     }),
   });
