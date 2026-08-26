@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import type { AzureConfig } from './types/azure';
 import { DeployPage } from './components/deploy/DeployPage';
 import { PRList } from './components/review/PRList';
 import { PRDetailPage } from './components/review/PRDetailPage';
+import { createGeminiProvider } from './api/gemini';
 
 const config: AzureConfig = {
   organization: import.meta.env.VITE_AZDO_ORGANIZATION,
@@ -24,6 +25,7 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 function App() {
   const [wideMode, setWideMode] = useState(false);
+  const aiProvider = useMemo(() => geminiKey ? createGeminiProvider(geminiKey) : null, []);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -61,7 +63,7 @@ VITE_GEMINI_API_KEY=tu-api-key`}
             <Routes>
               <Route path="/deploy" element={<DeployPage config={config} />} />
               <Route path="/review" element={<PRList config={config} />} />
-              <Route path="/review/:prId" element={<PRDetailPage config={config} geminiKey={geminiKey} onWideMode={setWideMode} />} />
+              <Route path="/review/:prId" element={<PRDetailPage config={config} aiProvider={aiProvider} onWideMode={setWideMode} />} />
               <Route path="*" element={<Navigate to="/deploy" replace />} />
             </Routes>
           </>

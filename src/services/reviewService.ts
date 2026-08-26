@@ -1,7 +1,7 @@
 import type { AzureConfig, FileChange, PRReviewer } from '../types/azure';
 import type { FileStats, ReviewIssue } from '../types/review';
+import type { AIProvider } from '../types/ai';
 import { getPRFileChanges, getPRReviewers } from '../api/pullRequests';
-import { reviewPRWithGemini } from '../api/gemini';
 
 export interface PRInfo {
   title: string;
@@ -43,13 +43,13 @@ export interface AIReviewResult {
 }
 
 export async function runAIReview(
-  geminiKey: string,
+  provider: AIProvider,
   prTitle: string,
   prDescription: string,
   files: FileChange[]
 ): Promise<AIReviewResult> {
   const startTime = Date.now();
-  const issues = await reviewPRWithGemini(geminiKey, prTitle, prDescription, files);
+  const issues = await provider.reviewPR(prTitle, prDescription, files);
   return {
     issues,
     duration: Date.now() - startTime,

@@ -1,11 +1,12 @@
 import { useState, useCallback } from 'react';
 import type { FileChange } from '../types/azure';
 import type { ReviewIssue } from '../types/review';
+import type { AIProvider } from '../types/ai';
 import { runAIReview } from '../services/reviewService';
 import { pathsMatch } from '../utils/paths';
 
 export function useAIReview(
-  geminiKey: string,
+  provider: AIProvider | null,
   setStatus: (msg: string) => void
 ) {
   const [issues, setIssues] = useState<ReviewIssue[]>([]);
@@ -18,14 +19,14 @@ export function useAIReview(
     prDescription: string,
     fileChanges: FileChange[]
   ) => {
-    if (!geminiKey || fileChanges.length === 0) return;
+    if (!provider || fileChanges.length === 0) return;
     setReviewing(true);
     setIssues([]);
     setReviewDuration(0);
 
     try {
-      setStatus(`Enviando ${fileChanges.length} archivos a Gemini...`);
-      const result = await runAIReview(geminiKey, prTitle, prDescription, fileChanges);
+      setStatus(`Enviando ${fileChanges.length} archivos a ${provider.name}...`);
+      const result = await runAIReview(provider, prTitle, prDescription, fileChanges);
       setIssues(result.issues);
       setReviewDuration(result.duration);
       setStatus(result.issues.length === 0
@@ -38,19 +39,19 @@ export function useAIReview(
     } finally {
       setReviewing(false);
     }
-  }, [geminiKey, setStatus]);
+  }, [provider, setStatus]);
 
   const reviewFile = useCallback(async (
     prTitle: string,
     prDescription: string,
     file: FileChange
   ) => {
-    if (!geminiKey) return;
+    if (!provider) return;
     setReviewingFiles(prev => new Set([...prev, file.path]));
 
     try {
       setStatus(`Revisando ${file.path}...`);
-      const result = await runAIReview(geminiKey, prTitle, prDescription, [file]);
+      const result = await runAIReview(provider, prTitle, prDescription, [file]);
       setIssues(prev => {
         const otherIssues = prev.filter(i => !pathsMatch(i.file, file.path));
         return [...otherIssues, ...result.issues];
@@ -70,7 +71,7 @@ export function useAIReview(
         return next;
       });
     }
-  }, [geminiKey, setStatus]);
+  }, [provider, setStatus]);
 
   return { issues, reviewing, reviewDuration, reviewingFiles, startReview, reviewFile };
 }

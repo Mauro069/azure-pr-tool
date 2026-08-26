@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { AzureConfig, FileChange } from '../../types/azure';
+import type { AIProvider } from '../../types/ai';
 import { usePRDetail } from '../../hooks/usePRDetail';
 import { useAIReview } from '../../hooks/useAIReview';
 import { useVote } from '../../hooks/useVote';
@@ -10,11 +11,11 @@ import { PRActionBar } from './PRActionBar';
 
 interface Props {
   config: AzureConfig;
-  geminiKey: string;
+  aiProvider: AIProvider | null;
   onWideMode?: (wide: boolean) => void;
 }
 
-export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
+export function PRDetailPage({ config, aiProvider, onWideMode }: Props) {
   const { prId: prIdParam } = useParams<{ prId: string }>();
   const navigate = useNavigate();
   const prId = Number(prIdParam);
@@ -29,7 +30,7 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
     reviewers,
   } = usePRDetail(config, prId);
 
-  const { issues, reviewing, reviewDuration, reviewingFiles, startReview, reviewFile } = useAIReview(geminiKey, setStatus);
+  const { issues, reviewing, reviewDuration, reviewingFiles, startReview, reviewFile } = useAIReview(aiProvider, setStatus);
   const { voting, handleVote } = useVote(config, prId);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
         prId={prId}
         prTitle={prInfo?.title ?? ''}
         reviewers={reviewers}
-        geminiKey={geminiKey}
+        hasAI={!!aiProvider}
         reviewing={reviewing}
         reviewingFileCount={reviewingFiles.size}
         voting={voting}
@@ -109,7 +110,7 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
           issues={issues}
           onBack={handleBack}
           hideBackButton
-          onReviewFile={geminiKey ? handleFileReview : undefined}
+          onReviewFile={aiProvider ? handleFileReview : undefined}
           reviewingFiles={reviewingFiles}
           reviewing={reviewing}
         />

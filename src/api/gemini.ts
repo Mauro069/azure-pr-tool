@@ -1,4 +1,5 @@
 import type { FileChange } from '../types/azure';
+import type { AIProvider } from '../types/ai';
 
 const MODEL = 'gemini-3.6-flash';
 const MAX_RETRIES = 4;
@@ -67,61 +68,64 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export type { ReviewIssue } from '../types/review';
 import type { ReviewIssue } from '../types/review';
 
-export async function reviewPRWithGemini(
-  apiKey: string,
-  prTitle: string,
-  prDescription: string,
-  files: FileChange[]
-): Promise<ReviewIssue[]> {
-  const prompt = buildPrompt(prTitle, prDescription, files);
-  const body = JSON.stringify({
-    contents: [{ parts: [{ text: prompt }] }],
-    generationConfig: {
-      maxOutputTokens: 8192,
-      responseMimeType: 'application/json',
-    },
-  });
+function parseIssues(raw: Record<string, string>[]): ReviewIssue[] {
+  return raw.map((i) => ({
+    ...i,
+    problem: i.problem ?? i.message ?? '',
+    suggestion: i.suggestion ?? '',
+    message: i.problem && i.suggestion
+      ? `${i.problem}\n\n**Sugerencia:** ${i.suggestion}`
+      : i.message ?? i.problem ?? '',
+  })) as unknown as ReviewIssue[];
+}
 
-  let lastError = '';
+export function createGeminiProvider(apiKey: string): AIProvider {
+  return {
+    name: 'Gemini',
+    async reviewPR(prTitle, prDescription, files) {
+      const prompt = buildPrompt(prTitle, prDescription, files);
+      const body = JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+        },
+      });
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    const res = await fetch(
-      `/api/gemini/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body,
+      let lastError = '';
+
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        const res = await fetch(
+          `/api/gemini/v1beta/models/${MODEL}:generateContent?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body,
+          }
+        );
+
+        if (res.status === 503 || res.status === 429) {
+          lastError = `Modelo saturado (intento ${attempt}/${MAX_RETRIES})`;
+          await delay(RETRY_DELAY_MS);
+          continue;
+        }
+
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Gemini API error ${res.status}: ${text}`);
+        }
+
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error('Respuesta vacía de Gemini');
+
+        const parsed = JSON.parse(text);
+        return parseIssues(parsed.issues ?? []);
       }
-    );
 
-    if (res.status === 503) {
-      lastError = `Modelo saturado (intento ${attempt}/${MAX_RETRIES})`;
-      await delay(RETRY_DELAY_MS);
-      continue;
-    }
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Gemini API error ${res.status}: ${text}`);
-    }
-
-    const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!text) throw new Error('Respuesta vacía de Gemini');
-
-    const parsed = JSON.parse(text);
-    return (parsed.issues ?? []).map((i: Record<string, string>) => ({
-      ...i,
-      problem: i.problem ?? i.message ?? '',
-      suggestion: i.suggestion ?? '',
-      message: i.problem && i.suggestion
-        ? `${i.problem}\n\n**Sugerencia:** ${i.suggestion}`
-        : i.message ?? i.problem ?? '',
-    }));
-  }
-
-  throw new Error(`Gemini no disponible después de ${MAX_RETRIES} intentos: ${lastError}`);
+      throw new Error(`Gemini no disponible después de ${MAX_RETRIES} intentos: ${lastError}`);
+    },
+  };
 }

@@ -8,7 +8,7 @@ interface Props {
   prId: number;
   prTitle: string;
   reviewers: PRReviewer[];
-  geminiKey: string;
+  hasAI: boolean;
   reviewing: boolean;
   reviewingFileCount?: number;
   voting: boolean;
@@ -24,7 +24,7 @@ export function PRActionBar({
   prId,
   prTitle,
   reviewers,
-  geminiKey,
+  hasAI,
   reviewing,
   reviewingFileCount = 0,
   voting,
@@ -61,7 +61,7 @@ export function PRActionBar({
           Wait for author
         </button>
 
-        {geminiKey && (
+        {hasAI && (
           <button
             onClick={onAIReview}
             disabled={reviewing || fileCount === 0 || reviewingFileCount > 0}
