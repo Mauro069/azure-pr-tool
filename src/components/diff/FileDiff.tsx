@@ -20,6 +20,7 @@ interface Props {
 
 export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate, collapsed: initialCollapsed = false, onReviewFile, isReviewingFile = false, isFullReviewing = false }: Props) {
   const [collapsed, setCollapsed] = useState(initialCollapsed);
+  const [copiedPath, setCopiedPath] = useState(false);
 
   useEffect(() => {
     setCollapsed(initialCollapsed);
@@ -138,7 +139,18 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
       >
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-[10px] text-gray-500 shrink-0">{collapsed ? '▶' : '▼'}</span>
-          <span className="text-xs font-mono text-gray-300 truncate">{file.path}</span>
+          <span
+            className="text-xs font-mono text-gray-300 truncate hover:text-white transition-colors"
+            title="Click para copiar path"
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(file.path);
+              setCopiedPath(true);
+              setTimeout(() => setCopiedPath(false), 1500);
+            }}
+          >
+            {copiedPath ? '✓ Copiado!' : <>{file.path} <span className="text-gray-500 text-[10px]">📋</span></>}
+          </span>
           {hasComments && <span className="text-[10px] text-purple-400 shrink-0">{'\uD83D\uDCAC'} {threads.length + issues.length}</span>}
         </div>
         <div className="flex items-center gap-2 shrink-0 text-xs font-mono">

@@ -3,8 +3,6 @@ import type { AzureConfig, FileChange } from '../../types/azure';
 import type { ReviewIssue } from '../../types/review';
 import { useThreads } from '../../hooks/useThreads';
 import { pathsMatch } from '../../utils/paths';
-import { buildFileTree } from '../../utils/fileTree';
-import { FileTreeView } from './FileTreeView';
 import { FileDiff } from './FileDiff';
 
 interface Props {
@@ -21,11 +19,9 @@ interface Props {
 
 export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton, onReviewFile, reviewingFiles, reviewing }: Props) {
   const { threads, loadingThreads, refresh: refreshThreads } = useThreads(config, prId);
-  const [activeFile, setActiveFile] = useState(files[0]?.path ?? '');
   const [collapsedFiles, setCollapsedFiles] = useState<Set<string>>(new Set());
   const prevIssuesLen = useRef(0);
   const fileRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const tree = buildFileTree(files);
 
   // Auto-collapse files without comments when AI review completes
   useEffect(() => {
@@ -57,11 +53,6 @@ export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton
     prevIssuesLen.current = issues.length;
   }, [issues, files, threads]);
 
-  const scrollToFile = (path: string) => {
-    setActiveFile(path);
-    fileRefs.current.get(path)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const getThreadsForFile = (filePath: string) =>
     threads.filter((t) => pathsMatch(t.threadContext?.filePath ?? '', filePath));
 
@@ -87,35 +78,26 @@ export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton
         </div>
       )}
 
-      <div className="flex gap-3" style={{ minHeight: '70vh' }}>
-        {/* File tree sidebar */}
-        <div className="w-56 shrink-0 bg-gray-800/50 border border-gray-700 rounded-lg p-2 overflow-y-auto" style={{ maxHeight: '80vh' }}>
-          <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2 px-1">Archivos</div>
-          <FileTreeView node={tree} activeFile={activeFile} onSelect={scrollToFile} />
-        </div>
-
-        {/* Diff panel */}
-        <div className="flex-1 min-w-0 space-y-4 overflow-y-auto" style={{ maxHeight: '80vh' }}>
-          {files.map((file) => (
-            <div
-              key={file.path}
-              ref={(el) => { if (el) fileRefs.current.set(file.path, el); }}
-            >
-              <FileDiff
-                file={file}
-                threads={getThreadsForFile(file.path)}
-                issues={getIssuesForFile(file.path)}
-                config={config}
-                prId={prId}
-                onThreadsUpdate={refreshThreads}
-                collapsed={collapsedFiles.has(file.path)}
-                onReviewFile={onReviewFile}
-                isReviewingFile={reviewingFiles?.has(file.path) ?? false}
-                isFullReviewing={reviewing ?? false}
-              />
-            </div>
-          ))}
-        </div>
+      <div className="space-y-4 overflow-y-auto" style={{ maxHeight: '80vh' }}>
+        {files.map((file) => (
+          <div
+            key={file.path}
+            ref={(el) => { if (el) fileRefs.current.set(file.path, el); }}
+          >
+            <FileDiff
+              file={file}
+              threads={getThreadsForFile(file.path)}
+              issues={getIssuesForFile(file.path)}
+              config={config}
+              prId={prId}
+              onThreadsUpdate={refreshThreads}
+              collapsed={collapsedFiles.has(file.path)}
+              onReviewFile={onReviewFile}
+              isReviewingFile={reviewingFiles?.has(file.path) ?? false}
+              isFullReviewing={reviewing ?? false}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
