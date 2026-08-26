@@ -3,6 +3,8 @@ export interface ReviewIssue {
   line: string;
   severity: 'bug' | 'security' | 'improvement' | 'suggestion';
   message: string;
+  problem: string;
+  suggestion: string;
 }
 
 export interface FileStats {

@@ -32,17 +32,26 @@ export function IssueInline({ issue, config, prId, onPublished }: {
   onPublished: () => void;
 }) {
   const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'published' | 'error'>('idle');
+  const [copied, setCopied] = useState(false);
+
+  const buildMarkdown = () =>
+    `**[${LABELS[issue.severity] ?? issue.severity}]**\n\n**Problema:** ${issue.problem}\n\n**Sugerencia:** ${issue.suggestion}`;
 
   const handlePublish = async () => {
     setPublishState('publishing');
     try {
-      const comment = `**[${LABELS[issue.severity] ?? issue.severity}]** ${issue.message}`;
-      await postPRComment(config, prId, issue.file, issue.line, comment);
+      await postPRComment(config, prId, issue.file, issue.line, buildMarkdown());
       setPublishState('published');
       onPublished();
     } catch {
       setPublishState('error');
     }
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(buildMarkdown());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
@@ -54,20 +63,33 @@ export function IssueInline({ issue, config, prId, onPublished }: {
           </span>
           <span className="text-[10px] text-gray-500">IA Review</span>
         </div>
-        <button
-          onClick={handlePublish}
-          disabled={publishState === 'publishing' || publishState === 'published'}
-          className={`px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
-            publishState === 'published' ? 'bg-green-700 text-green-200' :
-            publishState === 'error' ? 'bg-red-700 text-red-200 hover:bg-red-600' :
-            publishState === 'publishing' ? 'bg-gray-600 text-gray-300' :
-            'bg-purple-700 text-purple-100 hover:bg-purple-600'
-          } disabled:cursor-not-allowed`}
-        >
-          {publishState === 'published' ? 'Publicado' : publishState === 'publishing' ? '...' : publishState === 'error' ? 'Reintentar' : 'Publicar'}
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleCopy}
+            className="px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer bg-gray-700 text-gray-200 hover:bg-gray-600"
+          >
+            {copied ? 'Copiado!' : 'Copiar'}
+          </button>
+          <button
+            onClick={handlePublish}
+            disabled={publishState === 'publishing' || publishState === 'published'}
+            className={`px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
+              publishState === 'published' ? 'bg-green-700 text-green-200' :
+              publishState === 'error' ? 'bg-red-700 text-red-200 hover:bg-red-600' :
+              publishState === 'publishing' ? 'bg-gray-600 text-gray-300' :
+              'bg-purple-700 text-purple-100 hover:bg-purple-600'
+            } disabled:cursor-not-allowed`}
+          >
+            {publishState === 'published' ? 'Publicado' : publishState === 'publishing' ? '...' : publishState === 'error' ? 'Reintentar' : 'Publicar'}
+          </button>
+        </div>
       </div>
-      <div className="text-xs text-gray-200 leading-relaxed">{renderMarkdown(issue.message)}</div>
+      <div className="text-xs text-gray-200 leading-relaxed">
+        <p>{renderMarkdown(issue.problem)}</p>
+        {issue.suggestion && (
+          <p className="mt-1.5 text-gray-300"><strong>Sugerencia:</strong> {renderMarkdown(issue.suggestion)}</p>
+        )}
+      </div>
     </div>
   );
 }

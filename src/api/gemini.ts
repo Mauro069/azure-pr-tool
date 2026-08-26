@@ -52,7 +52,8 @@ Responde ÚNICAMENTE con un JSON válido, sin texto antes ni después, sin bloqu
       "file": "ruta/al/archivo.ts",
       "line": "número de línea exacto de la versión DESPUÉS/NUEVO del archivo (ej: 42 o 40-45)",
       "severity": "bug" | "security" | "improvement" | "suggestion",
-      "message": "Descripción concisa del problema y cómo solucionarlo"
+      "problem": "Descripción concisa del problema encontrado",
+      "suggestion": "Propuesta concreta de cómo solucionarlo"
     }
   ]
 }
@@ -112,7 +113,14 @@ export async function reviewPRWithGemini(
     if (!text) throw new Error('Respuesta vacía de Gemini');
 
     const parsed = JSON.parse(text);
-    return parsed.issues ?? [];
+    return (parsed.issues ?? []).map((i: Record<string, string>) => ({
+      ...i,
+      problem: i.problem ?? i.message ?? '',
+      suggestion: i.suggestion ?? '',
+      message: i.problem && i.suggestion
+        ? `${i.problem}\n\n**Sugerencia:** ${i.suggestion}`
+        : i.message ?? i.problem ?? '',
+    }));
   }
 
   throw new Error(`Gemini no disponible después de ${MAX_RETRIES} intentos: ${lastError}`);
