@@ -36,7 +36,7 @@ export function InlineThread({ thread, config, prId, onReplySubmitted }: {
     4: 'border-gray-600 bg-gray-800/40',
   };
 
-  const visibleComments = thread.comments.filter((c) => c.commentType !== 2);
+  const visibleComments = thread.comments.filter((c) => c.commentType !== 2 && !c.isDeleted);
 
   return (
     <div className={`mx-2 my-2 border-l-4 rounded-r-lg p-3 space-y-2 shadow-lg ${statusColors[thread.status] ?? statusColors[1]}`}>

@@ -92,6 +92,7 @@ export interface PRComment {
   author: { displayName: string };
   publishedDate: string;
   commentType: number;
+  isDeleted?: boolean;
 }
 
 export interface PRThread {
