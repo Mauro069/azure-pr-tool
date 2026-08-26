@@ -59,19 +59,14 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export interface ReviewIssue {
-  file: string;
-  line: string;
-  severity: 'bug' | 'security' | 'improvement' | 'suggestion';
-  message: string;
-}
+export type { ReviewIssue } from '../types/review';
+import type { ReviewIssue } from '../types/review';
 
 export async function reviewPRWithGemini(
   apiKey: string,
   prTitle: string,
   prDescription: string,
-  files: FileChange[],
-  onStatus?: (msg: string) => void
+  files: FileChange[]
 ): Promise<ReviewIssue[]> {
   const prompt = buildPrompt(prTitle, prDescription, files);
   const body = JSON.stringify({
@@ -96,7 +91,6 @@ export async function reviewPRWithGemini(
 
     if (res.status === 503) {
       lastError = `Modelo saturado (intento ${attempt}/${MAX_RETRIES})`;
-      onStatus?.(`${lastError}, reintentando en ${RETRY_DELAY_MS / 1000}s...`);
       await delay(RETRY_DELAY_MS);
       continue;
     }

@@ -6,10 +6,16 @@ import type {
   PRIterationChange,
   FileChange,
   PRListItem,
+  PRReviewer,
   PRThread,
 } from '../types/azure';
 import { azureFetch, buildBaseUrl, buildHeaders } from './client';
 import { shouldSkipForReview } from './skipPatterns';
+import { isBinaryFile, CHANGE_TYPE_MAP } from '../constants/files';
+import { normalizePath } from '../utils/paths';
+
+export type { FileStats } from '../types/review';
+import type { FileStats } from '../types/review';
 
 export type PRStatus = 'active' | 'completed' | 'abandoned' | 'all';
 
@@ -72,27 +78,6 @@ export async function getPRIterationChanges(
   return data.changeEntries;
 }
 
-const BINARY_EXTENSIONS = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.webp',
-  '.woff', '.woff2', '.ttf', '.eot', '.otf',
-  '.zip', '.tar', '.gz', '.rar',
-  '.pdf', '.doc', '.docx', '.xls', '.xlsx',
-  '.mp3', '.mp4', '.avi', '.mov',
-  '.exe', '.dll', '.so', '.dylib',
-]);
-
-function isBinaryFile(path: string): boolean {
-  const ext = path.substring(path.lastIndexOf('.')).toLowerCase();
-  return BINARY_EXTENSIONS.has(ext);
-}
-
-const CHANGE_TYPE_MAP: Record<number, string> = {
-  1: 'add',
-  2: 'edit',
-  16: 'delete',
-  18: 'rename',
-};
-
 export async function getFileContent(
   config: AzureConfig,
   path: string,
@@ -112,26 +97,13 @@ export async function getFileContent(
   return res.text();
 }
 
-export interface FileStats {
-  total: number;
-  reviewed: number;
-  skipped: string[];
-  binary: string[];
-}
-
 export async function getPRFileChanges(
   config: AzureConfig,
-  prId: number,
-  onProgress?: (msg: string) => void
+  prId: number
 ): Promise<{ pr: PullRequestDetail; files: FileChange[]; stats: FileStats }> {
-  onProgress?.('Obteniendo detalles de la PR...');
   const pr = await getPRDetails(config, prId);
-
-  onProgress?.('Obteniendo iteraciones...');
   const iterations = await getPRIterations(config, prId);
   const lastIteration = iterations[iterations.length - 1];
-
-  onProgress?.('Obteniendo archivos cambiados...');
   const changes = await getPRIterationChanges(config, prId, lastIteration.id);
 
   const blobs = changes.filter((c) => c.item.gitObjectType === 'blob' || !c.item.gitObjectType);
@@ -147,11 +119,10 @@ export async function getPRFileChanges(
     binary,
   };
 
-  onProgress?.(`Obteniendo contenido de ${fileChanges.length} archivos...`);
-
   const sourceCommit = pr.lastMergeSourceCommit.commitId;
   const targetCommit = pr.lastMergeTargetCommit.commitId;
   const files: FileChange[] = [];
+  const MAX_CONTENT_LENGTH = 15000;
 
   for (const change of fileChanges) {
     const changeType = CHANGE_TYPE_MAP[change.changeType] ?? 'edit';
@@ -159,23 +130,32 @@ export async function getPRFileChanges(
 
     if (changeType === 'add' || changeType === 'edit' || changeType === 'rename') {
       file.newContent = await getFileContent(config, change.item.path, sourceCommit);
-      if (file.newContent.length > 15000) {
-        file.newContent = file.newContent.substring(0, 15000) + '\n... (truncado)';
+      if (file.newContent.length > MAX_CONTENT_LENGTH) {
+        file.newContent = file.newContent.substring(0, MAX_CONTENT_LENGTH) + '\n... (truncado)';
       }
     }
 
     if (changeType === 'edit' || changeType === 'delete') {
       file.oldContent = await getFileContent(config, change.item.path, targetCommit);
-      if (file.oldContent.length > 15000) {
-        file.oldContent = file.oldContent.substring(0, 15000) + '\n... (truncado)';
+      if (file.oldContent.length > MAX_CONTENT_LENGTH) {
+        file.oldContent = file.oldContent.substring(0, MAX_CONTENT_LENGTH) + '\n... (truncado)';
       }
     }
 
     files.push(file);
-    onProgress?.(`  ${change.item.path} (${changeType})`);
   }
 
   return { pr, files, stats };
+}
+
+export async function getPRReviewers(
+  config: AzureConfig,
+  prId: number
+): Promise<PRReviewer[]> {
+  const base = buildBaseUrl(config);
+  const url = `${base}/_apis/git/repositories/${config.repository}/pullrequests/${prId}?api-version=7.1`;
+  const data = await azureFetch<{ reviewers?: PRReviewer[] }>(url, config.pat);
+  return data.reviewers ?? [];
 }
 
 interface PullRequestResponse {
@@ -224,7 +204,7 @@ export async function postPRComment(
   const url = `${base}/_apis/git/repositories/${config.repository}/pullrequests/${prId}/threads?api-version=7.1`;
   const { start, end } = parseLineRange(line);
 
-  const normalizedPath = filePath.startsWith('/') ? filePath : `/${filePath}`;
+  const normalizedPath = normalizePath(filePath);
 
   await azureFetch(url, config.pat, {
     method: 'POST',

@@ -1,11 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Routes, Route, NavLink, Navigate } from 'react-router-dom';
-import { PRInput } from './components/PRInput';
-import { ResultsList } from './components/ResultsList';
-import { PRList, PRDetail } from './components/PRReview';
-import type { AzureConfig, ProcessedWorkItem } from './types/azure';
-import { getPRWorkItems, addLabelToPR } from './api/pullRequests';
-import { getWorkItem, getTargetState, resolveWorkItem } from './api/workItems';
+import type { AzureConfig } from './types/azure';
+import { DeployPage } from './components/deploy/DeployPage';
+import { PRList } from './components/review/PRList';
+import { PRDetailPage } from './components/review/PRDetailPage';
 
 const config: AzureConfig = {
   organization: import.meta.env.VITE_AZDO_ORGANIZATION,
@@ -16,126 +14,6 @@ const config: AzureConfig = {
 
 const geminiKey = import.meta.env.VITE_GEMINI_API_KEY;
 const isConfigured = config.organization && config.project && config.repository && config.pat;
-
-function DeployPage() {
-  const [results, setResults] = useState<ProcessedWorkItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [log, setLog] = useState<string[]>([]);
-
-  const addLog = (msg: string) => setLog((prev) => [...prev, msg]);
-
-  const handleProcess = useCallback(
-    async (prIds: number[]) => {
-      setLoading(true);
-      setResults([]);
-      setLog([]);
-
-      const allResults: ProcessedWorkItem[] = [];
-      const processedIds = new Set<string>();
-
-      for (const prId of prIds) {
-        addLog(`PR #${prId}: obteniendo work items...`);
-        try {
-          const workItemRefs = await getPRWorkItems(config, prId);
-          addLog(`PR #${prId}: ${workItemRefs.length} work items encontrados`);
-
-          for (const ref of workItemRefs) {
-            if (processedIds.has(ref.id)) {
-              addLog(`  WI #${ref.id}: ya procesado, saltando`);
-              continue;
-            }
-            processedIds.add(ref.id);
-
-            try {
-              const detail = await getWorkItem(config, ref.id);
-              const type = detail.fields['System.WorkItemType'];
-              const title = detail.fields['System.Title'];
-              const previousState = detail.fields['System.State'];
-              const targetState = getTargetState(type);
-              const url = `https://dev.azure.com/${config.organization}/${config.project}/_workitems/edit/${ref.id}`;
-
-              addLog(`  WI #${ref.id} (${type}): ${previousState} -> ${targetState}`);
-
-              await resolveWorkItem(config, ref.id, targetState);
-
-              allResults.push({
-                id: ref.id,
-                title,
-                type,
-                previousState,
-                newState: targetState,
-                url,
-                success: true,
-              });
-              addLog(`  WI #${ref.id}: actualizado correctamente`);
-            } catch (err) {
-              const msg = err instanceof Error ? err.message : String(err);
-              addLog(`  WI #${ref.id}: ERROR - ${msg}`);
-              allResults.push({
-                id: ref.id,
-                title: '',
-                type: '',
-                previousState: '',
-                newState: 'Resolved',
-                url: `https://dev.azure.com/${config.organization}/${config.project}/_workitems/edit/${ref.id}`,
-                success: false,
-                error: msg,
-              });
-            }
-          }
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          addLog(`PR #${prId}: ERROR - ${msg}`);
-        }
-      }
-
-      // Agregar tag "ULTIMA DESPLEGADA" a la última PR
-      const lastPrId = prIds[prIds.length - 1];
-      addLog(`PR #${lastPrId}: agregando tag "ULTIMA DESPLEGADA"...`);
-      try {
-        await addLabelToPR(config, lastPrId, 'ULTIMA DESPLEGADA');
-        addLog(`PR #${lastPrId}: tag agregado correctamente`);
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        addLog(`PR #${lastPrId}: ERROR al agregar tag - ${msg}`);
-      }
-
-      setResults(allResults);
-      setLoading(false);
-    },
-    []
-  );
-
-  return (
-    <>
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-4">Pull Requests</h2>
-        <PRInput onProcess={handleProcess} loading={loading} />
-      </div>
-
-      {log.length > 0 && (
-        <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-4">
-          <h2 className="text-lg font-semibold mb-2">Log</h2>
-          <div className="font-mono text-xs text-gray-400 max-h-48 overflow-y-auto space-y-0.5">
-            {log.map((line, i) => (
-              <div key={i}>{line}</div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <ResultsList results={results} />
-    </>
-  );
-}
-
-function ReviewListPage() {
-  return <PRList config={config} />;
-}
-
-function ReviewDetailPage({ onWideMode }: { onWideMode: (wide: boolean) => void }) {
-  return <PRDetail config={config} geminiKey={geminiKey} onWideMode={onWideMode} />;
-}
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `px-4 py-2 rounded-t-lg font-medium transition-colors cursor-pointer ${
@@ -181,9 +59,9 @@ VITE_GEMINI_API_KEY=tu-api-key`}
             </div>
 
             <Routes>
-              <Route path="/deploy" element={<DeployPage />} />
-              <Route path="/review" element={<ReviewListPage />} />
-              <Route path="/review/:prId" element={<ReviewDetailPage onWideMode={setWideMode} />} />
+              <Route path="/deploy" element={<DeployPage config={config} />} />
+              <Route path="/review" element={<PRList config={config} />} />
+              <Route path="/review/:prId" element={<PRDetailPage config={config} geminiKey={geminiKey} onWideMode={setWideMode} />} />
               <Route path="*" element={<Navigate to="/deploy" replace />} />
             </Routes>
           </>
