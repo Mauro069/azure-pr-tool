@@ -130,12 +130,7 @@ function DeployPage() {
 }
 
 function ReviewListPage() {
-  return (
-    <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-      <h2 className="text-lg font-semibold mb-4">Pull Requests activas</h2>
-      <PRList config={config} />
-    </div>
-  );
+  return <PRList config={config} />;
 }
 
 function ReviewDetailPage({ onWideMode }: { onWideMode: (wide: boolean) => void }) {
@@ -154,7 +149,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className={`${wideMode ? 'max-w-[95vw]' : 'max-w-3xl'} mx-auto px-4 py-8 space-y-6 transition-all`}>
+      <div className={`${wideMode ? 'max-w-[95vw]' : 'max-w-5xl'} mx-auto px-4 py-8 space-y-6 transition-all`}>
         <h1 className="text-3xl font-bold text-center">Azure DevOps PR Tool</h1>
 
         {!isConfigured ? (

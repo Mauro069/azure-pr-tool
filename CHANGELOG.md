@@ -1,5 +1,26 @@
 # Changelog
 
+## [3.0.0] - 2026-08-26
+
+### Agregado
+- **Vista de PRs estilo Azure DevOps**: lista de PRs rediseñada para replicar la interfaz nativa de Azure DevOps
+- **Tabs de estado**: filtros Mine, Active, Completed y Abandoned para navegar entre PRs por estado
+- **Barra de filtros**: búsqueda por ID/título, filtro por creador y por rama destino (client-side)
+- **Badges de estado**: dot de color (verde/azul/gris/amarillo) según estado y draft
+- **Badges de labels**: muestra "Auto-complete", "Draft" y labels personalizados en cada fila
+- **Avatares de reviewers**: usa `imageUrl` de la API para mostrar fotos reales en vez de iniciales calculadas
+- **Botón "New pull request"**: link directo a Azure DevOps para crear una nueva PR
+- Función `getPullRequests(config, status)` en la API para soportar distintos estados
+
+### Cambiado
+- Layout de PRs cambiado de cards redondeadas a filas estilo tabla separadas por líneas
+- Ancho máximo de la app ampliado de `max-w-3xl` a `max-w-5xl` para la vista de lista
+- Reviewers de sistema/grupo (`isContainer`) filtrados de la lista de revisores
+- `ReviewListPage` ya no usa wrapper card — el componente `PRList` maneja su propio header
+
+### Corregido
+- Reviewers de sistema mostraban caracteres como "[" o "]" en las iniciales
+
 ## [2.2.0] - 2026-08-25
 
 ### Agregado

@@ -65,17 +65,25 @@ export interface PRReviewer {
   id: string;
   displayName: string;
   vote: number;
+  imageUrl?: string;
+  isContainer?: boolean;
 }
+
+export type PRStatusFilter = 'mine' | 'active' | 'completed' | 'abandoned';
 
 export interface PRListItem {
   pullRequestId: number;
   title: string;
-  createdBy: { displayName: string };
+  status: string;
+  createdBy: { displayName: string; id: string };
   sourceRefName: string;
   targetRefName: string;
   creationDate: string;
+  closedDate?: string;
   isDraft: boolean;
   reviewers: PRReviewer[];
+  labels?: { id: string; name: string }[];
+  autoCompleteSetBy?: { displayName: string };
 }
 
 export interface PRComment {

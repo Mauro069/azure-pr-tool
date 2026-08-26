@@ -1,7 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import type { AzureConfig, FileChange, PRListItem, PRReviewer } from '../types/azure';
-import { getPRFileChanges, getActivePRs, votePR, type FileStats } from '../api/pullRequests';
+import type { AzureConfig, FileChange, PRListItem, PRReviewer, PRStatusFilter } from '../types/azure';
+import { getPRFileChanges, getPullRequests, getCurrentUserId, votePR, type FileStats } from '../api/pullRequests';
 import { reviewPRWithGemini, type ReviewIssue } from '../api/gemini';
 import { DiffViewer } from './DiffViewer';
 
@@ -38,25 +38,26 @@ const VOTE_STYLES: Record<number, { color: string; label: string }> = {
 };
 
 function ReviewerBadges({ reviewers }: { reviewers: PRReviewer[] }) {
-  if (!reviewers || reviewers.length === 0) return null;
+  const humans = reviewers?.filter((r) => !r.isContainer);
+  if (!humans || humans.length === 0) return null;
 
   return (
     <div className="flex items-center gap-1 flex-wrap">
-      {reviewers.map((r) => {
+      {humans.map((r) => {
         const style = VOTE_STYLES[r.vote] ?? VOTE_STYLES[0];
-        const initials = r.displayName
-          .split(' ')
-          .map((w) => w[0])
-          .join('')
-          .slice(0, 2)
-          .toUpperCase();
         return (
           <span
             key={r.id}
             title={`${r.displayName}: ${style.label}`}
-            className={`${style.color} text-white text-[10px] w-6 h-6 rounded-full flex items-center justify-center font-medium`}
+            className={`${style.color} w-7 h-7 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-gray-900`}
           >
-            {initials}
+            {r.imageUrl ? (
+              <img src={r.imageUrl} alt={r.displayName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-white text-[10px] font-medium">
+                {r.displayName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+              </span>
+            )}
           </span>
         );
       })}
@@ -64,19 +65,53 @@ function ReviewerBadges({ reviewers }: { reviewers: PRReviewer[] }) {
   );
 }
 
+// --- Status Dot ---
+
+function StatusDot({ status, isDraft }: { status: string; isDraft: boolean }) {
+  const color = isDraft
+    ? 'bg-yellow-500'
+    : status === 'completed'
+      ? 'bg-blue-500'
+      : status === 'abandoned'
+        ? 'bg-gray-500'
+        : 'bg-green-500';
+  return <span className={`w-3 h-3 rounded-full shrink-0 ${color}`} />;
+}
+
+// --- Tabs ---
+
+const TABS: { key: PRStatusFilter; label: string }[] = [
+  { key: 'mine', label: 'Mine' },
+  { key: 'active', label: 'Active' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'abandoned', label: 'Abandoned' },
+];
+
 // --- PR List ---
 
 export function PRList({ config }: { config: AzureConfig }) {
   const navigate = useNavigate();
   const [prs, setPrs] = useState<PRListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [manualId, setManualId] = useState('');
-  const [showManual, setShowManual] = useState(false);
+  const [activeTab, setActiveTab] = useState<PRStatusFilter>('active');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  const fetchPRs = useCallback(async () => {
+  // Filters
+  const [searchText, setSearchText] = useState('');
+  const [createdByFilter, setCreatedByFilter] = useState('');
+  const [targetBranchFilter, setTargetBranchFilter] = useState('');
+
+  // Fetch current user id for "Mine" tab
+  useEffect(() => {
+    getCurrentUserId(config).then(setCurrentUserId).catch(() => {});
+  }, [config]);
+
+  // Fetch PRs when tab changes
+  const fetchPRs = useCallback(async (tab: PRStatusFilter) => {
     setLoading(true);
     try {
-      const list = await getActivePRs(config);
+      const status = tab === 'mine' ? 'active' : tab;
+      const list = await getPullRequests(config, status);
       setPrs(list);
     } catch {
       setPrs([]);
@@ -85,95 +120,206 @@ export function PRList({ config }: { config: AzureConfig }) {
     }
   }, [config]);
 
-  useEffect(() => { fetchPRs(); }, [fetchPRs]);
+  useEffect(() => {
+    fetchPRs(activeTab);
+  }, [activeTab, fetchPRs]);
+
+  const handleTabChange = (tab: PRStatusFilter) => {
+    setActiveTab(tab);
+    setSearchText('');
+    setCreatedByFilter('');
+    setTargetBranchFilter('');
+  };
+
+  // Derived filter options
+  const creators = useMemo(() => [...new Set(prs.map((pr) => pr.createdBy.displayName))].sort(), [prs]);
+  const targetBranches = useMemo(() => [...new Set(prs.map((pr) => branchName(pr.targetRefName)))].sort(), [prs]);
+
+  const hasFilters = searchText || createdByFilter || targetBranchFilter;
+
+  const clearFilters = () => {
+    setSearchText('');
+    setCreatedByFilter('');
+    setTargetBranchFilter('');
+  };
+
+  // Filtered PRs
+  const filteredPrs = useMemo(() => {
+    let result = prs;
+
+    if (activeTab === 'mine' && currentUserId) {
+      result = result.filter(
+        (pr) =>
+          pr.createdBy.id === currentUserId ||
+          pr.reviewers?.some((r) => r.id === currentUserId)
+      );
+    }
+
+    if (searchText.trim()) {
+      const q = searchText.trim().toLowerCase();
+      result = result.filter(
+        (pr) =>
+          pr.title.toLowerCase().includes(q) ||
+          pr.pullRequestId.toString().includes(q)
+      );
+    }
+
+    if (createdByFilter) {
+      result = result.filter((pr) => pr.createdBy.displayName === createdByFilter);
+    }
+
+    if (targetBranchFilter) {
+      result = result.filter((pr) => branchName(pr.targetRefName) === targetBranchFilter);
+    }
+
+    return result;
+  }, [prs, activeTab, currentUserId, searchText, createdByFilter, targetBranchFilter]);
+
+  const newPrUrl = `https://dev.azure.com/${config.organization}/${config.project}/_git/${config.repository}/pullrequestcreate`;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-sm text-gray-400">
-          {loading ? 'Cargando PRs...' : `${prs.length} PR${prs.length !== 1 ? 's' : ''} activa${prs.length !== 1 ? 's' : ''}`}
-        </span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowManual(!showManual)}
-            className="px-3 py-1.5 text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors cursor-pointer"
-          >
-            ID manual
-          </button>
-          <button
-            onClick={fetchPRs}
-            disabled={loading}
-            className="px-3 py-1.5 text-xs text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? '...' : 'Refrescar'}
-          </button>
-        </div>
+        <h2 className="text-xl font-semibold">Pull requests</h2>
+        <a
+          href={newPrUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+        >
+          + New pull request
+        </a>
       </div>
 
-      {showManual && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const id = Number(manualId);
-            if (id > 0) navigate(`/review/${id}`);
-          }}
-          className="flex gap-2"
-        >
-          <input
-            type="number"
-            value={manualId}
-            onChange={(e) => setManualId(e.target.value)}
-            placeholder="PR ID"
-            min="1"
-            className="flex-1 px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-purple-500"
-            required
-          />
+      {/* Tabs */}
+      <div className="flex gap-6 border-b border-gray-700">
+        {TABS.map((tab) => (
           <button
-            type="submit"
-            className="px-4 py-2 text-sm bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            className={`pb-2 text-sm font-medium transition-colors cursor-pointer ${
+              activeTab === tab.key
+                ? 'text-white border-b-2 border-blue-500'
+                : 'text-gray-400 hover:text-gray-200'
+            }`}
           >
-            Ir
-          </button>
-        </form>
-      )}
-
-      {loading && prs.length === 0 && (
-        <div className="text-center py-8 text-gray-500 text-sm">Cargando pull requests...</div>
-      )}
-
-      {!loading && prs.length === 0 && (
-        <div className="text-center py-8 text-gray-500 text-sm">No hay PRs activas en este repositorio.</div>
-      )}
-
-      <div className="space-y-2 max-h-96 overflow-y-auto">
-        {prs.map((pr) => (
-          <button
-            key={pr.pullRequestId}
-            onClick={() => navigate(`/review/${pr.pullRequestId}`)}
-            className="w-full text-left bg-gray-800 border border-gray-700 rounded-lg p-3 hover:border-purple-500 cursor-pointer transition-colors group"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-purple-400 text-sm font-mono font-medium">#{pr.pullRequestId}</span>
-                  {pr.isDraft && <span className="text-xs bg-yellow-600/80 text-yellow-100 px-1.5 py-0.5 rounded font-medium">Draft</span>}
-                  <span className="text-white text-sm truncate group-hover:text-purple-200 transition-colors">{pr.title}</span>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{branchName(pr.sourceRefName)}</span>
-                  <span className="text-gray-600 text-xs">→</span>
-                  <span className="text-xs font-mono bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{branchName(pr.targetRefName)}</span>
-                </div>
-              </div>
-              <div className="text-right shrink-0 space-y-1">
-                <div className="text-xs text-gray-500">{timeAgo(pr.creationDate)}</div>
-                <div className="text-xs text-gray-500">{pr.createdBy.displayName}</div>
-                <ReviewerBadges reviewers={pr.reviewers} />
-              </div>
-            </div>
+            {tab.label}
           </button>
         ))}
       </div>
+
+      {/* Filter bar */}
+      <div className="flex items-center gap-3">
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          placeholder="Pull Request ID or title"
+          className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+        />
+        <select
+          value={createdByFilter}
+          onChange={(e) => setCreatedByFilter(e.target.value)}
+          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+        >
+          <option value="">Created by</option>
+          {creators.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          value={targetBranchFilter}
+          onChange={(e) => setTargetBranchFilter(e.target.value)}
+          className="px-3 py-2 bg-gray-800 border border-gray-600 rounded text-sm text-gray-300 focus:outline-none focus:border-blue-500 cursor-pointer"
+        >
+          <option value="">Target branch</option>
+          {targetBranches.map((b) => (
+            <option key={b} value={b}>{b}</option>
+          ))}
+        </select>
+        {hasFilters && (
+          <button
+            onClick={clearFilters}
+            className="p-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+            title="Clear filters"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* Loading */}
+      {loading && (
+        <div className="text-center py-8 text-gray-500 text-sm">Cargando pull requests...</div>
+      )}
+
+      {/* Empty state */}
+      {!loading && filteredPrs.length === 0 && (
+        <div className="text-center py-8 text-gray-500 text-sm">
+          {hasFilters ? 'No hay PRs que coincidan con los filtros.' : 'No hay pull requests.'}
+        </div>
+      )}
+
+      {/* PR list */}
+      {!loading && filteredPrs.length > 0 && (
+        <div className="divide-y divide-gray-700/50">
+          {filteredPrs.map((pr) => (
+            <button
+              key={pr.pullRequestId}
+              onClick={() => navigate(`/review/${pr.pullRequestId}`)}
+              className="w-full text-left flex items-center gap-4 px-4 py-3 hover:bg-gray-800/60 cursor-pointer transition-colors group"
+            >
+              {/* Status dot */}
+              <StatusDot status={pr.status ?? 'active'} isDraft={pr.isDraft} />
+
+              {/* Main info */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="text-white text-sm font-medium truncate group-hover:text-blue-300 transition-colors">
+                    {pr.title}
+                  </span>
+                  {pr.isDraft && (
+                    <span className="text-[10px] bg-yellow-600/30 text-yellow-300 border border-yellow-600/50 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                      Draft
+                    </span>
+                  )}
+                  {pr.autoCompleteSetBy && (
+                    <span className="text-[10px] bg-blue-600/30 text-blue-300 border border-blue-600/50 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                      Auto-complete
+                    </span>
+                  )}
+                  {pr.labels?.map((label) => (
+                    <span
+                      key={label.id}
+                      className="text-[10px] bg-gray-600/30 text-gray-300 border border-gray-600/50 px-1.5 py-0.5 rounded-full font-medium shrink-0"
+                    >
+                      {label.name}
+                    </span>
+                  ))}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {pr.createdBy.displayName}
+                  <span className="mx-1.5">·</span>
+                  <span className="font-mono">#{pr.pullRequestId}</span>
+                  <span className="mx-1.5">·</span>
+                  <span className="font-mono">{branchName(pr.sourceRefName)}</span>
+                  <span className="mx-1"> into </span>
+                  <span className="font-mono">{branchName(pr.targetRefName)}</span>
+                </div>
+              </div>
+
+              {/* Right side: reviewers + time */}
+              <div className="flex items-center gap-3 shrink-0">
+                <ReviewerBadges reviewers={pr.reviewers} />
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  Updated {timeAgo(pr.creationDate)}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

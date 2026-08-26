@@ -11,11 +11,20 @@ import type {
 import { azureFetch, buildBaseUrl, buildHeaders } from './client';
 import { shouldSkipForReview } from './skipPatterns';
 
-export async function getActivePRs(config: AzureConfig): Promise<PRListItem[]> {
+export type PRStatus = 'active' | 'completed' | 'abandoned' | 'all';
+
+export async function getPullRequests(
+  config: AzureConfig,
+  status: PRStatus = 'active'
+): Promise<PRListItem[]> {
   const base = buildBaseUrl(config);
-  const url = `${base}/_apis/git/repositories/${config.repository}/pullrequests?searchCriteria.status=active&api-version=7.1`;
+  const url = `${base}/_apis/git/repositories/${config.repository}/pullrequests?searchCriteria.status=${status}&$top=50&api-version=7.1`;
   const data = await azureFetch<{ value: PRListItem[] }>(url, config.pat);
   return data.value;
+}
+
+export async function getActivePRs(config: AzureConfig): Promise<PRListItem[]> {
+  return getPullRequests(config, 'active');
 }
 
 interface WorkItemRefsResponse {
