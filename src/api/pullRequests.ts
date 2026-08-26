@@ -249,7 +249,7 @@ let cachedUserId: string | null = null;
 export async function getCurrentUserId(config: AzureConfig): Promise<string> {
   if (cachedUserId) return cachedUserId;
   const data = await azureFetch<{ authenticatedUser: { id: string } }>(
-    '/api/azdo/_apis/connectionData?api-version=7.1',
+    `/api/azdo/${config.organization}/_apis/connectionData?api-version=7.1-preview`,
     config.pat
   );
   cachedUserId = data.authenticatedUser.id;
