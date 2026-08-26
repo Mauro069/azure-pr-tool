@@ -1,38 +1,28 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import type { AzureConfig, PRListItem, PRStatusFilter } from '../types/azure';
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import type { AzureConfig, PRStatusFilter } from '../types/azure';
 import { getPullRequests, getCurrentUserId } from '../api/pullRequests';
 import { branchName } from '../utils/paths';
 
 export function usePRList(config: AzureConfig) {
-  const [prs, setPrs] = useState<PRListItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<PRStatusFilter>('active');
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   const [searchText, setSearchText] = useState('');
   const [createdByFilter, setCreatedByFilter] = useState('');
   const [targetBranchFilter, setTargetBranchFilter] = useState('');
 
-  useEffect(() => {
-    getCurrentUserId(config).then(setCurrentUserId).catch(() => {});
-  }, [config]);
+  const status = activeTab === 'mine' ? 'active' : activeTab;
 
-  const fetchPRs = useCallback(async (tab: PRStatusFilter) => {
-    setLoading(true);
-    try {
-      const status = tab === 'mine' ? 'active' : tab;
-      const list = await getPullRequests(config, status);
-      setPrs(list);
-    } catch {
-      setPrs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [config]);
+  const { data: prs = [], isLoading: loading } = useQuery({
+    queryKey: ['pr-list', status],
+    queryFn: () => getPullRequests(config, status),
+  });
 
-  useEffect(() => {
-    fetchPRs(activeTab);
-  }, [activeTab, fetchPRs]);
+  const { data: currentUserId = null } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: () => getCurrentUserId(config),
+    staleTime: Infinity,
+  });
 
   const handleTabChange = (tab: PRStatusFilter) => {
     setActiveTab(tab);

@@ -27,11 +27,10 @@ export function PRDetailPage({ config, geminiKey, onWideMode }: Props) {
     setStatus,
     prInfo,
     reviewers,
-    setReviewers,
   } = usePRDetail(config, prId);
 
   const { issues, reviewing, reviewDuration, reviewingFiles, startReview, reviewFile } = useAIReview(geminiKey, setStatus);
-  const { voting, handleVote } = useVote(config, prId, setReviewers);
+  const { voting, handleVote } = useVote(config, prId);
 
   useEffect(() => {
     if (prId) onWideMode?.(true);
