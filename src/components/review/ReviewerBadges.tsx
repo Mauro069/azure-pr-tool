@@ -13,13 +13,22 @@ export function ReviewerBadges({ reviewers }: { reviewers: PRReviewer[] }) {
           <span
             key={r.id}
             title={`${r.displayName}: ${style.label}`}
-            className={`${style.color} w-7 h-7 rounded-full flex items-center justify-center overflow-hidden ring-2 ring-gray-900`}
+            className="relative w-8 h-8 shrink-0"
           >
-            {r.imageUrl ? (
-              <img src={r.imageUrl} alt={r.displayName} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-white text-[10px] font-medium">
-                {r.displayName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+            {/* Avatar */}
+            <span className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-gray-600 ring-2 ring-gray-900">
+              {r.imageUrl ? (
+                <img src={r.imageUrl} alt={r.displayName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-white text-[10px] font-medium">
+                  {r.displayName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
+                </span>
+              )}
+            </span>
+            {/* Vote badge overlay */}
+            {r.vote !== 0 && (
+              <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center ${style.color} ring-2 ring-gray-900`}>
+                <VoteIcon vote={r.vote} />
               </span>
             )}
           </span>
@@ -27,4 +36,33 @@ export function ReviewerBadges({ reviewers }: { reviewers: PRReviewer[] }) {
       })}
     </div>
   );
+}
+
+function VoteIcon({ vote }: { vote: number }) {
+  if (vote === 10 || vote === 5) {
+    // Checkmark
+    return (
+      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 6l3 3 5-5" />
+      </svg>
+    );
+  }
+  if (vote === -5) {
+    // Clock (wait for author)
+    return (
+      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+        <circle cx="6" cy="6" r="4.5" />
+        <path d="M6 3.5V6l2 1.5" />
+      </svg>
+    );
+  }
+  if (vote === -10) {
+    // X (rejected)
+    return (
+      <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <path d="M3 3l6 6M9 3l-6 6" />
+      </svg>
+    );
+  }
+  return null;
 }

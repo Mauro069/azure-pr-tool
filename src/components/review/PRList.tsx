@@ -1,10 +1,9 @@
 import { useNavigate } from 'react-router-dom';
-import type { AzureConfig, PRStatusFilter } from '../../types/azure';
+import type { AzureConfig, PRStatusFilter, PRListItem } from '../../types/azure';
 import { usePRList } from '../../hooks/usePRList';
 import { timeAgo } from '../../utils/time';
 import { branchName } from '../../utils/paths';
 import { ReviewerBadges } from './ReviewerBadges';
-import { StatusDot } from './StatusDot';
 import { Select } from '../Select';
 
 const TABS: { key: PRStatusFilter; label: string }[] = [
@@ -113,34 +112,40 @@ export function PRList({ config }: { config: AzureConfig }) {
 
       {/* PR list */}
       {!loading && filteredPrs.length > 0 && (
-        <div className="divide-y divide-gray-700/50">
-          {filteredPrs.map((pr) => (
+        <div className="border border-gray-700 rounded">
+          {filteredPrs.map((pr, i) => (
             <button
               key={pr.pullRequestId}
               onClick={() => navigate(`/review/${pr.pullRequestId}`)}
-              className="w-full text-left flex items-center gap-4 px-4 py-3 hover:bg-gray-800/60 cursor-pointer transition-colors group"
+              className={`w-full text-left flex items-center gap-3 px-4 py-3 hover:bg-gray-800/60 cursor-pointer transition-colors group border-l-3 ${getBorderColor(pr)} ${i > 0 ? 'border-t border-t-gray-700/50' : ''}`}
             >
-              <StatusDot status={pr.status ?? 'active'} isDraft={pr.isDraft} />
+              {/* Creator avatar */}
+              <CreatorAvatar pr={pr} />
 
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="text-white text-sm font-medium truncate group-hover:text-blue-300 transition-colors">
                     {pr.title}
                   </span>
+                  {pr.mergeStatus === 'conflicts' && (
+                    <span className="text-[10px] bg-red-600/30 text-red-300 border border-red-600/50 px-1.5 py-0.5 rounded font-medium shrink-0">
+                      Conflicts
+                    </span>
+                  )}
                   {pr.isDraft && (
-                    <span className="text-[10px] bg-yellow-600/30 text-yellow-300 border border-yellow-600/50 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                    <span className="text-[10px] bg-gray-600/30 text-gray-300 border border-gray-600/50 px-1.5 py-0.5 rounded font-medium shrink-0">
                       Draft
                     </span>
                   )}
                   {pr.autoCompleteSetBy && (
-                    <span className="text-[10px] bg-blue-600/30 text-blue-300 border border-blue-600/50 px-1.5 py-0.5 rounded-full font-medium shrink-0">
+                    <span className="text-[10px] bg-green-600/30 text-green-300 border border-green-600/50 px-1.5 py-0.5 rounded font-medium shrink-0">
                       Auto-complete
                     </span>
                   )}
                   {pr.labels?.map((label) => (
                     <span
                       key={label.id}
-                      className="text-[10px] bg-gray-600/30 text-gray-300 border border-gray-600/50 px-1.5 py-0.5 rounded-full font-medium shrink-0"
+                      className="text-[10px] bg-gray-600/30 text-gray-300 border border-gray-600/50 px-1.5 py-0.5 rounded font-medium shrink-0"
                     >
                       {label.name}
                     </span>
@@ -148,11 +153,12 @@ export function PRList({ config }: { config: AzureConfig }) {
                 </div>
                 <div className="text-xs text-gray-500">
                   {pr.createdBy.displayName}
-                  <span className="mx-1.5">·</span>
-                  <span className="font-mono">#{pr.pullRequestId}</span>
-                  <span className="mx-1.5">·</span>
-                  <span className="font-mono">{branchName(pr.sourceRefName)}</span>
-                  <span className="mx-1"> into </span>
+                  <span className="mx-1">request</span>
+                  <span className="font-mono">!{pr.pullRequestId}</span>
+                  <span className="mx-1">into</span>
+                  <svg className="inline w-3 h-3 text-gray-500 mx-0.5" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M5 3.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm0 9.5a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm7.5-.75a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5ZM5 6.5v3a3.25 3.25 0 0 0 3.25-3.25v-.003A3.252 3.252 0 0 1 11.5 3h.293l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L11.793 4H11.5A2.252 2.252 0 0 0 9.25 6.247v.003A4.25 4.25 0 0 1 5 10.5v3" />
+                  </svg>
                   <span className="font-mono">{branchName(pr.targetRefName)}</span>
                 </div>
               </div>
@@ -168,5 +174,31 @@ export function PRList({ config }: { config: AzureConfig }) {
         </div>
       )}
     </div>
+  );
+}
+
+function getBorderColor(pr: PRListItem): string {
+  if (pr.isDraft) return 'border-l-yellow-500';
+  if (pr.status === 'completed') return 'border-l-blue-500';
+  if (pr.status === 'abandoned') return 'border-l-gray-500';
+  return 'border-l-blue-500';
+}
+
+function CreatorAvatar({ pr }: { pr: PRListItem }) {
+  const initials = pr.createdBy.displayName
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <span className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-gray-600 shrink-0">
+      {pr.createdBy.imageUrl ? (
+        <img src={pr.createdBy.imageUrl} alt={pr.createdBy.displayName} className="w-full h-full object-cover" />
+      ) : (
+        <span className="text-white text-xs font-medium">{initials}</span>
+      )}
+    </span>
   );
 }

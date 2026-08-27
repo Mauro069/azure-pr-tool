@@ -79,12 +79,13 @@ export interface PRListItem {
   pullRequestId: number;
   title: string;
   status: string;
-  createdBy: { displayName: string; id: string };
+  createdBy: { displayName: string; id: string; imageUrl?: string };
   sourceRefName: string;
   targetRefName: string;
   creationDate: string;
   closedDate?: string;
   isDraft: boolean;
+  mergeStatus?: string;
   reviewers: PRReviewer[];
   labels?: { id: string; name: string }[];
   autoCompleteSetBy?: { displayName: string };
