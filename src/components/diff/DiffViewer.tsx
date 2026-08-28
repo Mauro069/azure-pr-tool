@@ -65,11 +65,11 @@ export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton
         <div className="flex items-center justify-between">
           <button
             onClick={onBack}
-            className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors cursor-pointer"
+            className="text-[10px] font-bold uppercase tracking-[0.12em] text-accent-500 hover:text-accent-700 cursor-pointer"
           >
             ← Volver al resumen
           </button>
-          <div className="flex items-center gap-2 text-xs text-gray-500">
+          <div className="flex items-center gap-2 text-[11px] text-neutral-600">
             {loadingThreads && <span>Cargando comentarios...</span>}
             <span>{files.length} archivo{files.length !== 1 ? 's' : ''}</span>
             <span>·</span>
@@ -78,7 +78,7 @@ export function DiffViewer({ config, prId, files, issues, onBack, hideBackButton
         </div>
       )}
 
-      <div className="space-y-4 overflow-y-auto" style={{ maxHeight: '80vh' }}>
+      <div className="space-y-3 overflow-y-auto" style={{ maxHeight: '80vh' }}>
         {files.map((file) => (
           <div
             key={file.path}

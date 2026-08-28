@@ -71,48 +71,41 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
   const [expandedCollapsed, setExpandedCollapsed] = useState<Set<number>>(new Set());
 
   const lineColors = {
-    add: 'bg-green-900/30',
-    remove: 'bg-red-900/30',
+    add: 'bg-green-100',
+    remove: 'bg-accent-200',
     unchanged: '',
   };
 
   const lineNumColors = {
-    add: 'text-green-700',
-    remove: 'text-red-700',
-    unchanged: 'text-gray-600',
-  };
-
-  const prefixChars = {
-    add: '+',
-    remove: '-',
-    unchanged: ' ',
+    add: 'text-neutral-500',
+    remove: 'text-neutral-500',
+    unchanged: 'text-neutral-400',
   };
 
   const prefixColors = {
-    add: 'text-green-500',
-    remove: 'text-red-500',
-    unchanged: 'text-gray-600',
+    add: 'text-neutral-800 font-bold',
+    remove: 'text-accent-700 font-bold',
+    unchanged: 'text-neutral-400',
   };
 
   const renderLine = (line: DiffLine, key: string) => {
     const lineNum = line.type === 'add' ? line.newLine : (line.type === 'remove' ? line.oldLine : line.newLine);
     const lineThreads = lineNum ? threadsByLine.get(lineNum) ?? [] : [];
     const lineIssues = lineNum ? issuesByLine.get(lineNum) ?? [] : [];
-    const hasAnnotations = lineThreads.length > 0 || lineIssues.length > 0;
 
     return (
       <div key={key}>
-        <div className={`flex font-mono text-xs leading-5 ${lineColors[line.type]} ${hasAnnotations ? 'ring-1 ring-inset ring-purple-500/40 bg-purple-900/10' : ''}`}>
-          <span className={`w-10 text-right pr-1 select-none shrink-0 ${lineNumColors[line.type]}`}>
+        <div className={`grid font-mono text-[11.5px] leading-[1.6] ${lineColors[line.type]}`} style={{ gridTemplateColumns: '44px 44px 16px 1fr' }}>
+          <span className={`text-right pr-2 select-none ${lineNumColors[line.type]}`}>
             {line.oldLine ?? ''}
           </span>
-          <span className={`w-10 text-right pr-1 select-none shrink-0 ${lineNumColors[line.type]}`}>
+          <span className={`text-right pr-2 select-none ${lineNumColors[line.type]}`}>
             {line.newLine ?? ''}
           </span>
-          <span className={`w-4 text-center select-none shrink-0 ${hasAnnotations ? 'text-purple-400' : prefixColors[line.type]}`}>
-            {hasAnnotations ? '\uD83D\uDCAC' : prefixChars[line.type]}
+          <span className={`text-center select-none ${prefixColors[line.type]}`}>
+            {line.type === 'add' ? '+' : line.type === 'remove' ? '−' : ' '}
           </span>
-          <span className="flex-1 whitespace-pre overflow-x-auto pr-4">
+          <span className="whitespace-pre-wrap overflow-x-auto pr-4">
             {line.content}
           </span>
         </div>
@@ -126,21 +119,20 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
     );
   };
 
-  const hasComments = threads.length > 0 || issues.length > 0;
-
   return (
-    <div className={`border rounded-lg overflow-hidden ${hasComments ? 'border-purple-700/50' : 'border-gray-700'}`}>
+    <div className="border border-neutral-300 overflow-hidden">
+      {/* File header */}
       <div
         onClick={() => setCollapsed(!collapsed)}
         role="button"
-        className={`w-full flex items-center justify-between px-3 py-2 cursor-pointer transition-colors ${
-          collapsed ? 'bg-gray-800 hover:bg-gray-750' : 'bg-gray-800 border-b border-gray-700'
+        className={`w-full flex items-center justify-between px-4 py-2.5 cursor-pointer transition-colors hover:bg-neutral-900/[0.04] ${
+          !collapsed ? 'border-b border-neutral-300' : ''
         }`}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-[10px] text-gray-500 shrink-0">{collapsed ? '▶' : '▼'}</span>
+          <span className="text-[11px] text-neutral-500 shrink-0">{collapsed ? '▶' : '▼'}</span>
           <span
-            className="text-xs font-mono text-gray-300 truncate hover:text-white transition-colors"
+            className="font-mono text-[12px] font-semibold text-neutral-900 truncate hover:text-accent-500 transition-colors"
             title="Click para copiar path"
             onClick={(e) => {
               e.stopPropagation();
@@ -149,11 +141,15 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
               setTimeout(() => setCopiedPath(false), 1500);
             }}
           >
-            {copiedPath ? '✓ Copiado!' : <>{file.path} <span className="text-gray-500 text-[10px]">📋</span></>}
+            {copiedPath ? '✓ Copiado!' : file.path}
           </span>
-          {hasComments && <span className="text-[10px] text-purple-400 shrink-0">{'\uD83D\uDCAC'} {threads.length + issues.length}</span>}
+          {issues.length > 0 && (
+            <span className="text-[10px] font-bold uppercase bg-accent-500 text-white px-1.5 py-0.5 shrink-0">
+              {issues.length} hallazgo{issues.length !== 1 ? 's' : ''} IA
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-2 shrink-0 text-xs font-mono">
+        <div className="flex items-center gap-3 shrink-0 text-[12px] font-mono">
           {onReviewFile && (
             <button
               onClick={(e) => {
@@ -162,21 +158,23 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
               }}
               disabled={isReviewingFile || isFullReviewing}
               title="Revisar este archivo con IA"
-              className="px-1.5 py-0.5 text-[10px] rounded bg-purple-800/60 hover:bg-purple-700 text-purple-300 hover:text-white disabled:bg-gray-700 disabled:text-gray-500 transition-colors cursor-pointer disabled:cursor-not-allowed"
+              className="px-2 py-0.5 text-[11px] font-semibold border border-neutral-400 text-neutral-700 hover:bg-neutral-900/[0.07] disabled:opacity-45 transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               {isReviewingFile ? (
                 <span className="inline-block animate-pulse">● IA</span>
               ) : (
-                '✦ IA'
+                'Revisar con IA'
               )}
             </button>
           )}
-          {removedCount > 0 && <span className="text-red-400">-{removedCount}</span>}
-          {addedCount > 0 && <span className="text-green-400">+{addedCount}</span>}
+          {removedCount > 0 && <span className="text-accent-700">−{removedCount}</span>}
+          {addedCount > 0 && <span className="text-neutral-800">+{addedCount}</span>}
         </div>
       </div>
+
+      {/* Diff content */}
       {!collapsed && (
-        <div className="overflow-x-auto bg-gray-900">
+        <div className="overflow-x-auto">
           {chunks.map((chunk, ci) => {
             if (chunk.type === 'collapsed') {
               if (expandedCollapsed.has(chunk.startIndex)) {
@@ -196,7 +194,7 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
                 <button
                   key={`chunk-${ci}`}
                   onClick={() => setExpandedCollapsed((prev) => new Set([...prev, chunk.startIndex]))}
-                  className="w-full py-1 text-center text-[10px] text-blue-400 hover:text-blue-300 bg-gray-800/50 hover:bg-gray-800 border-y border-gray-700/50 cursor-pointer transition-colors"
+                  className="w-full py-1.5 text-center text-[11px] text-neutral-600 hover:text-neutral-900 bg-neutral-50 hover:bg-neutral-100 border-y border-neutral-300 cursor-pointer transition-colors"
                 >
                   ··· {chunk.count} lineas sin cambios ···
                 </button>

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import type { AzureConfig, FileChange } from '../../types/azure';
 import type { AIProvider } from '../../types/ai';
@@ -12,10 +12,9 @@ import { PRActionBar } from './PRActionBar';
 interface Props {
   config: AzureConfig;
   aiProvider: AIProvider | null;
-  onWideMode?: (wide: boolean) => void;
 }
 
-export function PRDetailPage({ config, aiProvider, onWideMode }: Props) {
+export function PRDetailPage({ config, aiProvider }: Props) {
   const { prId: prIdParam } = useParams<{ prId: string }>();
   const navigate = useNavigate();
   const prId = Number(prIdParam);
@@ -33,15 +32,9 @@ export function PRDetailPage({ config, aiProvider, onWideMode }: Props) {
   const { issues, reviewing, reviewDuration, reviewingFiles, startReview, reviewFile } = useAIReview(aiProvider, setStatus);
   const { voting, handleVote } = useVote(config, prId);
 
-  useEffect(() => {
-    if (prId) onWideMode?.(true);
-    return () => { onWideMode?.(false); };
-  }, [prId, onWideMode]);
-
   const handleBack = useCallback(() => {
-    onWideMode?.(false);
     navigate('/review');
-  }, [onWideMode, navigate]);
+  }, [navigate]);
 
   const handleAIReview = useCallback(() => {
     if (prInfo) {
@@ -57,9 +50,16 @@ export function PRDetailPage({ config, aiProvider, onWideMode }: Props) {
 
   if (loadingFiles) {
     return (
-      <div className="space-y-4">
-        <button onClick={handleBack} className="text-sm text-gray-400 hover:text-white cursor-pointer">← Volver a la lista</button>
-        <div className="font-mono text-xs text-gray-400 bg-gray-800/50 rounded-lg p-3">{status || 'Cargando archivos...'}</div>
+      <div>
+        <button
+          onClick={handleBack}
+          className="text-[10px] font-bold uppercase tracking-[0.12em] text-accent-500 hover:text-accent-700 cursor-pointer mb-4"
+        >
+          ← Volver a pull requests
+        </button>
+        <div className="font-mono text-[12px] text-accent-800 bg-accent-50 border-l-[3px] border-accent-500 px-3 py-2">
+          {status || 'Cargando archivos...'}
+        </div>
       </div>
     );
   }
@@ -84,12 +84,16 @@ export function PRDetailPage({ config, aiProvider, onWideMode }: Props) {
 
       {/* Branch info */}
       {prInfo?.sourceRefName && (
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{branchName(prInfo.sourceRefName)}</span>
-          <span className="text-gray-600 text-xs">→</span>
-          <span className="text-xs font-mono bg-gray-700 text-gray-300 px-2 py-0.5 rounded">{branchName(prInfo.targetRefName)}</span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-mono text-[11px] border border-neutral-400 text-neutral-800 px-1.5 py-0.5">
+            {branchName(prInfo.sourceRefName)}
+          </span>
+          <span className="text-neutral-500 text-[11px]">→</span>
+          <span className="font-mono text-[11px] border border-neutral-400 text-neutral-800 px-1.5 py-0.5">
+            {branchName(prInfo.targetRefName)}
+          </span>
           {stats && (
-            <span className="text-[10px] text-gray-500 ml-2">
+            <span className="text-[11px] text-neutral-600 ml-2">
               {stats.reviewed} archivos · {stats.skipped.length} skipeados · {stats.binary.length} binarios
             </span>
           )}
@@ -98,7 +102,9 @@ export function PRDetailPage({ config, aiProvider, onWideMode }: Props) {
 
       {/* Status */}
       {status && (
-        <div className="font-mono text-xs text-gray-400 bg-gray-800/50 rounded-lg p-2">{status}</div>
+        <div className="font-mono text-[12px] text-accent-800 bg-accent-50 border-l-[3px] border-accent-500 px-3 py-2">
+          {status}
+        </div>
       )}
 
       {/* Diff viewer */}
@@ -117,7 +123,7 @@ export function PRDetailPage({ config, aiProvider, onWideMode }: Props) {
       )}
 
       {fileChanges.length === 0 && !loadingFiles && (
-        <div className="text-center py-8 text-gray-500 text-sm">No se encontraron archivos para mostrar.</div>
+        <div className="text-center py-8 text-neutral-500 text-[13px]">No se encontraron archivos para mostrar.</div>
       )}
     </div>
   );

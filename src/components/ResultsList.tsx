@@ -31,70 +31,77 @@ export function ResultsList({ results }: Props) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const renderItem = (item: ProcessedWorkItem) => (
-    <div
-      key={item.id}
-      className="flex items-center justify-between p-3 bg-green-900/30 border border-green-700 rounded-lg"
-    >
-      <div className="text-left">
-        <span className="text-green-400 font-mono text-sm">#{item.id}</span>
-        <span className="text-gray-300 mx-2">|</span>
-        <span className="text-white">{item.title}</span>
-        <span className="text-gray-300 mx-2">-&gt;</span>
-        <span className="text-green-400 text-sm">{item.newState}</span>
-      </div>
-      <a
-        href={item.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="text-blue-400 hover:text-blue-300 text-sm shrink-0 ml-4"
-      >
-        Abrir
-      </a>
-    </div>
-  );
-
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-white">
-        Resultados ({successful.length}/{results.length} exitosos)
-      </h2>
+    <div>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-[13px] font-[800] uppercase tracking-[0.06em]">Previsualizacion</h2>
+        <span className="text-[11px] text-neutral-600">
+          {successful.length} de {results.length} seleccionados
+        </span>
+      </div>
+      <div className="border-b-2 border-neutral-900 mb-3" />
 
-      {groups.map((group) => (
-        <div key={group.label} className="space-y-2">
-          <h3 className="text-lg text-green-400">{group.label}</h3>
-          {group.items.map(renderItem)}
+      {/* Work items table */}
+      <div>
+        {/* Table header */}
+        <div className="grid items-center py-2 border-b-2 border-neutral-900" style={{ gridTemplateColumns: '22px 90px 1fr 130px 110px' }}>
+          <span />
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-700">Work item</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-700">Titulo</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-700">Estado actual</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-700">PR</span>
         </div>
-      ))}
 
-      {failed.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="text-lg text-red-400">Errores</h3>
-          {failed.map((item) => (
-            <div
-              key={item.id}
-              className="p-3 bg-red-900/30 border border-red-700 rounded-lg text-left"
-            >
-              <span className="text-red-400 font-mono text-sm">#{item.id}</span>
-              <span className="text-gray-300 mx-2">-</span>
-              <span className="text-red-300 text-sm">{item.error}</span>
-            </div>
-          ))}
-        </div>
-      )}
+        {/* Rows */}
+        {successful.map((item) => (
+          <div
+            key={item.id}
+            className="grid items-center py-2.5 border-b border-neutral-300"
+            style={{ gridTemplateColumns: '22px 90px 1fr 130px 110px' }}
+          >
+            <span className="flex justify-center">
+              <input type="checkbox" defaultChecked className="w-[13px] h-[13px] accent-accent-500" />
+            </span>
+            <span className="font-mono text-[11.5px] font-semibold">{item.id}</span>
+            <span className="text-[12.5px] truncate pr-3">{item.title}</span>
+            <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-neutral-700">{item.newState}</span>
+            <span className="font-mono text-[11px] text-neutral-600">
+              <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-accent-500 hover:text-accent-700">
+                Abrir
+              </a>
+            </span>
+          </div>
+        ))}
 
+        {failed.length > 0 && failed.map((item) => (
+          <div
+            key={item.id}
+            className="grid items-center py-2.5 border-b border-neutral-300"
+            style={{ gridTemplateColumns: '22px 90px 1fr 130px 110px' }}
+          >
+            <span />
+            <span className="font-mono text-[11.5px] font-semibold text-accent-700">{item.id}</span>
+            <span className="text-[12.5px] text-accent-700 truncate pr-3">{item.error}</span>
+            <span className="text-[10px] font-bold uppercase bg-accent-500 text-white px-1.5 py-0.5 w-fit">Error</span>
+            <span />
+          </div>
+        ))}
+      </div>
+
+      {/* Copy section */}
       {successful.length > 0 && (
-        <div className="mt-4 p-4 bg-gray-800 border border-gray-600 rounded-lg text-left">
+        <div className="mt-4 border border-neutral-300 bg-neutral-50 p-3">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm text-gray-400">URLs de Work Items procesados:</h3>
+            <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-neutral-700">URLs procesadas</span>
             <button
               onClick={handleCopy}
-              className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors cursor-pointer"
+              className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.04em] border border-neutral-400 text-neutral-700 hover:bg-neutral-900/[0.07] cursor-pointer transition-colors"
             >
-              {copied ? 'Copiado!' : 'Copiar URLs'}
+              {copied ? 'Copiado!' : 'Copiar'}
             </button>
           </div>
-          <pre className="text-blue-400 text-sm whitespace-pre-wrap break-all">
+          <pre className="font-mono text-[11.5px] text-neutral-800 whitespace-pre-wrap break-all leading-relaxed">
             {buildGroupedText()}
           </pre>
         </div>

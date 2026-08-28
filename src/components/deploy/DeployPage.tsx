@@ -8,14 +8,25 @@ export function DeployPage({ config }: { config: AzureConfig }) {
   const { results, loading, log, handleProcess } = useDeploy(config);
 
   return (
-    <>
-      <div className="bg-gray-800/50 border border-gray-700 rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-4">Pull Requests</h2>
-        <PRInput onProcess={handleProcess} loading={loading} />
-      </div>
+    <div>
+      {/* Header */}
+      <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-accent-500 mb-1">Automatizacion</p>
+      <h1 className="text-[30px] font-[800] tracking-tight leading-none mb-1">Deploy · Work items</h1>
+      <div className="border-b-2 border-neutral-900 mb-6" />
 
-      <DeployLog log={log} />
-      <ResultsList results={results} />
-    </>
+      {/* Two-column layout */}
+      <div className="grid grid-cols-[320px_minmax(0,1fr)] gap-0">
+        {/* Left: form */}
+        <div className="border-r-2 border-neutral-900 pr-6">
+          <PRInput onProcess={handleProcess} loading={loading} resultCount={results.filter(r => r.success).length} />
+        </div>
+
+        {/* Right: preview */}
+        <div className="pl-6">
+          <ResultsList results={results} />
+          <DeployLog log={log} />
+        </div>
+      </div>
+    </div>
   );
 }

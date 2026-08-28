@@ -16,7 +16,7 @@ export function Timer({ running }: { running: boolean }) {
   if (!running && elapsed === 0) return null;
 
   return (
-    <span className={`font-mono text-sm ${running ? 'text-purple-400' : 'text-gray-400'}`}>
+    <span className={`font-mono text-[13px] ${running ? 'text-accent-500' : 'text-neutral-500'}`}>
       {running && <span className="inline-block animate-pulse mr-1.5">●</span>}
       {formatDuration(elapsed)}
     </span>

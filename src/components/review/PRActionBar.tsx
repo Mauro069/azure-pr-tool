@@ -36,46 +36,56 @@ export function PRActionBar({
   onBack,
 }: Props) {
   return (
-    <div className="flex items-center justify-between flex-wrap gap-2">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="text-sm text-gray-400 hover:text-white cursor-pointer">← Volver</button>
-        <span className="text-purple-400 font-mono font-medium">#{prId}</span>
-        <span className="text-white text-sm truncate max-w-md">{prTitle}</span>
-      </div>
+    <div>
+      {/* Back button */}
+      <button
+        onClick={onBack}
+        className="text-[10px] font-bold uppercase tracking-[0.12em] text-accent-500 hover:text-accent-700 cursor-pointer mb-2"
+      >
+        ← Volver a pull requests
+      </button>
 
-      <div className="flex items-center gap-2">
-        <ReviewerBadges reviewers={reviewers} />
+      {/* Title row */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <h1 className="leading-tight">
+          <span className="font-mono text-[20px] text-neutral-500 font-medium">!{prId}</span>{' '}
+          <span className="text-[24px] font-[800]">{prTitle}</span>
+        </h1>
 
-        <button
-          onClick={() => onVote(10)}
-          disabled={voting}
-          className="px-3 py-1.5 text-xs bg-green-700 hover:bg-green-600 disabled:bg-gray-600 text-white rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
-        >
-          Aprobar
-        </button>
-        <button
-          onClick={() => onVote(-5)}
-          disabled={voting}
-          className="px-3 py-1.5 text-xs bg-yellow-700 hover:bg-yellow-600 disabled:bg-gray-600 text-white rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
-        >
-          Wait for author
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <ReviewerBadges reviewers={reviewers} />
 
-        {hasAI && (
           <button
-            onClick={onAIReview}
-            disabled={reviewing || fileCount === 0 || reviewingFileCount > 0}
-            className="px-3 py-1.5 text-xs bg-purple-700 hover:bg-purple-600 disabled:bg-gray-600 text-white rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
+            onClick={() => onVote(-5)}
+            disabled={voting}
+            className="px-3 py-2 text-[13px] font-semibold border border-neutral-400 text-neutral-800 hover:bg-neutral-900/[0.07] disabled:opacity-45 transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
-            {reviewing ? 'Revisando...' : issues.length > 0 ? `IA (${issues.length})` : 'Revisar con IA'}
+            Wait for author
           </button>
-        )}
+          <button
+            onClick={() => onVote(10)}
+            disabled={voting}
+            className="px-3 py-2 text-[13px] font-semibold bg-neutral-900 text-neutral-100 hover:bg-neutral-800 disabled:opacity-45 transition-colors cursor-pointer disabled:cursor-not-allowed"
+          >
+            Aprobar
+          </button>
 
-        <Timer running={reviewing} />
+          {hasAI && (
+            <button
+              onClick={onAIReview}
+              disabled={reviewing || fileCount === 0 || reviewingFileCount > 0}
+              className="px-3 py-2 text-[13px] font-semibold bg-accent-500 text-white hover:bg-accent-600 disabled:opacity-45 transition-colors cursor-pointer disabled:cursor-not-allowed"
+            >
+              {reviewing ? 'Revisando...' : issues.length > 0 ? `IA (${issues.length})` : 'Revisar con IA'}
+            </button>
+          )}
 
-        {reviewDuration > 0 && !reviewing && (
-          <span className="text-[10px] text-gray-500 font-mono">{formatDuration(reviewDuration)}</span>
-        )}
+          <Timer running={reviewing} />
+
+          {reviewDuration > 0 && !reviewing && (
+            <span className="text-[11px] text-neutral-500 font-mono">{formatDuration(reviewDuration)}</span>
+          )}
+        </div>
       </div>
     </div>
   );

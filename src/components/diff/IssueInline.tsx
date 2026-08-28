@@ -4,25 +4,18 @@ import type { ReviewIssue } from '../../types/review';
 import { postPRComment } from '../../api/pullRequests';
 import { renderMarkdown } from '../../utils/markdown.tsx';
 
-const COLORS: Record<string, string> = {
-  bug: 'border-red-500 bg-red-900/30',
-  security: 'border-orange-500 bg-orange-900/30',
-  improvement: 'border-blue-500 bg-blue-900/30',
-  suggestion: 'border-teal-500 bg-teal-900/30',
+const SEV_LABELS: Record<string, string> = {
+  bug: 'Alta',
+  security: 'Alta',
+  improvement: 'Media',
+  suggestion: 'Baja',
 };
 
-const LABELS: Record<string, string> = {
-  bug: 'Bug',
-  security: 'Seguridad',
-  improvement: 'Mejora',
-  suggestion: 'Sugerencia',
-};
-
-const BADGE_COLORS: Record<string, string> = {
-  bug: 'bg-red-600',
-  security: 'bg-orange-600',
-  improvement: 'bg-blue-600',
-  suggestion: 'bg-teal-600',
+const SEV_TAG_STYLES: Record<string, string> = {
+  bug: 'bg-accent-500 text-white',
+  security: 'bg-accent-500 text-white',
+  improvement: 'bg-accent-50 text-accent-700 border border-accent-300',
+  suggestion: 'bg-neutral-200 text-neutral-700',
 };
 
 export function IssueInline({ issue, config, prId, onPublished }: {
@@ -35,7 +28,7 @@ export function IssueInline({ issue, config, prId, onPublished }: {
   const [copied, setCopied] = useState(false);
 
   const buildMarkdown = () =>
-    `**[${LABELS[issue.severity] ?? issue.severity}]**\n\n**Problema:** ${issue.problem}\n\n**Sugerencia:** ${issue.suggestion}`;
+    `**[${SEV_LABELS[issue.severity] ?? issue.severity}]**\n\n**Problema:** ${issue.problem}\n\n**Sugerencia:** ${issue.suggestion}`;
 
   const handlePublish = async () => {
     setPublishState('publishing');
@@ -55,39 +48,39 @@ export function IssueInline({ issue, config, prId, onPublished }: {
   };
 
   return (
-    <div className={`mx-2 my-2 border-l-4 rounded-r-lg p-3 shadow-lg ${COLORS[issue.severity] ?? COLORS.improvement}`}>
+    <div className="ml-[44px] border-l-[3px] border-accent-500 bg-neutral-50 px-3 py-2.5 my-1">
       <div className="flex items-center justify-between mb-1.5">
         <div className="flex items-center gap-2">
-          <span className={`text-[10px] text-white px-1.5 py-0.5 rounded font-medium ${BADGE_COLORS[issue.severity] ?? BADGE_COLORS.improvement}`}>
-            {LABELS[issue.severity] ?? 'Mejora'}
+          <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 ${SEV_TAG_STYLES[issue.severity] ?? SEV_TAG_STYLES.improvement}`}>
+            {SEV_LABELS[issue.severity] ?? 'Media'}
           </span>
-          <span className="text-[10px] text-gray-500">IA Review</span>
+          <span className="font-mono text-[10px] text-neutral-600">IA Review</span>
         </div>
         <div className="flex items-center gap-1.5">
           <button
             onClick={handleCopy}
-            className="px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer bg-gray-700 text-gray-200 hover:bg-gray-600"
+            className="px-2 py-0.5 text-[10px] font-semibold border border-neutral-300 text-neutral-700 hover:bg-neutral-900/[0.07] transition-colors cursor-pointer"
           >
             {copied ? 'Copiado!' : 'Copiar'}
           </button>
           <button
             onClick={handlePublish}
             disabled={publishState === 'publishing' || publishState === 'published'}
-            className={`px-2 py-0.5 text-[10px] rounded transition-colors cursor-pointer ${
-              publishState === 'published' ? 'bg-green-700 text-green-200' :
-              publishState === 'error' ? 'bg-red-700 text-red-200 hover:bg-red-600' :
-              publishState === 'publishing' ? 'bg-gray-600 text-gray-300' :
-              'bg-purple-700 text-purple-100 hover:bg-purple-600'
+            className={`px-2 py-0.5 text-[10px] font-semibold transition-colors cursor-pointer ${
+              publishState === 'published' ? 'bg-neutral-200 text-neutral-600' :
+              publishState === 'error' ? 'bg-accent-500 text-white hover:bg-accent-600' :
+              publishState === 'publishing' ? 'bg-neutral-200 text-neutral-500' :
+              'bg-accent-500 text-white hover:bg-accent-600'
             } disabled:cursor-not-allowed`}
           >
             {publishState === 'published' ? 'Publicado' : publishState === 'publishing' ? '...' : publishState === 'error' ? 'Reintentar' : 'Publicar'}
           </button>
         </div>
       </div>
-      <div className="text-xs text-gray-200 leading-relaxed">
+      <div className="text-[12px] text-neutral-800 leading-relaxed max-w-[70ch]" style={{ textWrap: 'pretty' }}>
         <p>{renderMarkdown(issue.problem)}</p>
         {issue.suggestion && (
-          <p className="mt-1.5 text-gray-300"><strong>Sugerencia:</strong> {renderMarkdown(issue.suggestion)}</p>
+          <p className="mt-1.5 text-neutral-700"><strong>Sugerencia:</strong> {renderMarkdown(issue.suggestion)}</p>
         )}
       </div>
     </div>

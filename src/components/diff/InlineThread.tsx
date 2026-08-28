@@ -29,24 +29,17 @@ export function InlineThread({ thread, config, prId, onReplySubmitted }: {
     }
   };
 
-  const statusColors: Record<number, string> = {
-    1: 'border-blue-600 bg-blue-900/20',
-    2: 'border-green-600 bg-green-900/20',
-    3: 'border-yellow-600 bg-yellow-900/20',
-    4: 'border-gray-600 bg-gray-800/40',
-  };
-
   const visibleComments = thread.comments.filter((c) => c.commentType !== 2 && !c.isDeleted);
 
   return (
-    <div className={`mx-2 my-2 border-l-4 rounded-r-lg p-3 space-y-2 shadow-lg ${statusColors[thread.status] ?? statusColors[1]}`}>
+    <div className="ml-[44px] border-l-[3px] border-neutral-400 bg-neutral-50 px-3 py-2.5 my-1 space-y-2">
       {visibleComments.map((comment) => (
         <div key={comment.id}>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-medium text-gray-200">{comment.author.displayName}</span>
-            <span className="text-[10px] text-gray-500">{timeAgo(comment.publishedDate)}</span>
+            <span className="text-[12px] font-semibold text-neutral-900">{comment.author.displayName}</span>
+            <span className="text-[10px] text-neutral-500">{timeAgo(comment.publishedDate)}</span>
           </div>
-          <div className="text-xs text-gray-300 whitespace-pre-wrap">{renderMarkdown(comment.content)}</div>
+          <div className="text-[12px] text-neutral-800 whitespace-pre-wrap">{renderMarkdown(comment.content)}</div>
         </div>
       ))}
       {showReply ? (
@@ -55,19 +48,19 @@ export function InlineThread({ thread, config, prId, onReplySubmitted }: {
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             placeholder="Escribir respuesta..."
-            className="flex-1 px-2 py-1 text-xs bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+            className="flex-1 px-2.5 py-1.5 text-[12px] bg-white border border-neutral-300 text-neutral-900 placeholder-neutral-500 outline-none"
             onKeyDown={(e) => e.key === 'Enter' && handleReply()}
           />
           <button
             onClick={handleReply}
             disabled={sending || !replyText.trim()}
-            className="px-3 py-1 text-xs bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded cursor-pointer disabled:cursor-not-allowed transition-colors"
+            className="px-3 py-1.5 text-[12px] font-semibold bg-neutral-900 text-neutral-100 hover:bg-neutral-800 disabled:opacity-45 cursor-pointer disabled:cursor-not-allowed transition-colors"
           >
             {sending ? '...' : 'Enviar'}
           </button>
           <button
             onClick={() => { setShowReply(false); setReplyText(''); }}
-            className="px-2 py-1 text-xs text-gray-400 hover:text-white cursor-pointer"
+            className="px-2 py-1.5 text-[12px] text-neutral-600 hover:text-neutral-900 cursor-pointer"
           >
             Cancelar
           </button>
@@ -75,7 +68,7 @@ export function InlineThread({ thread, config, prId, onReplySubmitted }: {
       ) : (
         <button
           onClick={() => setShowReply(true)}
-          className="text-[10px] text-blue-400 hover:text-blue-300 cursor-pointer"
+          className="text-[11px] font-semibold text-accent-500 hover:text-accent-700 cursor-pointer"
         >
           Responder
         </button>
