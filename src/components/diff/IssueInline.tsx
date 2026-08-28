@@ -27,8 +27,18 @@ export function IssueInline({ issue, config, prId, onPublished }: {
   const [publishState, setPublishState] = useState<'idle' | 'publishing' | 'published' | 'error'>('idle');
   const [copied, setCopied] = useState(false);
 
+  if (publishState === 'published') return null;
+
   const buildMarkdown = () =>
-    `### Revisar\n\n**Problema:**\n${issue.problem}\n\n**Sugerencia:**\n${issue.suggestion}`;
+    [
+      '### Revisar',
+      '',
+      '**Problema:**',
+      issue.problem,
+      '',
+      '**Sugerencia:**',
+      issue.suggestion,
+    ].join('\n');
 
   const handlePublish = async () => {
     setPublishState('publishing');

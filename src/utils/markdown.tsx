@@ -1,14 +1,12 @@
 import type { JSX } from 'react';
 
-export function renderMarkdown(text: string): (string | JSX.Element)[] {
+function renderInline(text: string, keyBase: number): (string | JSX.Element)[] {
   const parts: (string | JSX.Element)[] = [];
   let remaining = text ?? '';
-  let key = 0;
+  let key = keyBase;
 
   while (remaining.length > 0) {
-    // **bold**
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
-    // `code`
     const codeMatch = remaining.match(/`([^`]+)`/);
 
     const matches = [
@@ -30,4 +28,50 @@ export function renderMarkdown(text: string): (string | JSX.Element)[] {
   }
 
   return parts;
+}
+
+export function renderMarkdown(text: string): (string | JSX.Element)[] {
+  if (!text) return [];
+
+  const lines = text.split('\n');
+  const elements: (string | JSX.Element)[] = [];
+  let key = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // ### Heading
+    const h3Match = line.match(/^###\s+(.+)/);
+    if (h3Match) {
+      elements.push(
+        <strong key={key++} className="block text-[13px] font-[800] text-neutral-900 mt-1 mb-1">
+          {h3Match[1]}
+        </strong>
+      );
+      continue;
+    }
+
+    // ## Heading
+    const h2Match = line.match(/^##\s+(.+)/);
+    if (h2Match) {
+      elements.push(
+        <strong key={key++} className="block text-[14px] font-[800] text-neutral-900 mt-1 mb-1">
+          {h2Match[1]}
+        </strong>
+      );
+      continue;
+    }
+
+    // Empty line = paragraph break
+    if (line.trim() === '') {
+      elements.push(<br key={key++} />);
+      continue;
+    }
+
+    // Regular line with inline formatting
+    const inlineParts = renderInline(line, key * 100);
+    elements.push(<span key={key++} className="block">{inlineParts}</span>);
+  }
+
+  return elements;
 }

@@ -90,8 +90,9 @@ export function FileDiff({ file, threads, issues, config, prId, onThreadsUpdate,
 
   const renderLine = (line: DiffLine, key: string) => {
     const lineNum = line.type === 'add' ? line.newLine : (line.type === 'remove' ? line.oldLine : line.newLine);
-    const lineThreads = lineNum ? threadsByLine.get(lineNum) ?? [] : [];
-    const lineIssues = lineNum ? issuesByLine.get(lineNum) ?? [] : [];
+    // Threads use rightFileStart (new file line numbers), so only show on add/unchanged lines
+    const lineThreads = line.type !== 'remove' && lineNum ? threadsByLine.get(lineNum) ?? [] : [];
+    const lineIssues = line.type !== 'remove' && lineNum ? issuesByLine.get(lineNum) ?? [] : [];
 
     return (
       <div key={key}>

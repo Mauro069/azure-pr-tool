@@ -39,7 +39,7 @@ export function InlineThread({ thread, config, prId, onReplySubmitted }: {
             <span className="text-[12px] font-semibold text-neutral-900">{comment.author.displayName}</span>
             <span className="text-[10px] text-neutral-500">{timeAgo(comment.publishedDate)}</span>
           </div>
-          <div className="text-[12px] text-neutral-800 whitespace-pre-wrap">{renderMarkdown(comment.content)}</div>
+          <div className="text-[12px] text-neutral-800">{renderMarkdown(comment.content)}</div>
         </div>
       ))}
       {showReply ? (
