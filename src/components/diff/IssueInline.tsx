@@ -28,7 +28,7 @@ export function IssueInline({ issue, config, prId, onPublished }: {
   const [copied, setCopied] = useState(false);
 
   const buildMarkdown = () =>
-    `**[${SEV_LABELS[issue.severity] ?? issue.severity}]**\n\n**Problema:** ${issue.problem}\n\n**Sugerencia:** ${issue.suggestion}`;
+    `### Revisar\n\n**Problema:**\n${issue.problem}\n\n**Sugerencia:**\n${issue.suggestion}`;
 
   const handlePublish = async () => {
     setPublishState('publishing');
@@ -77,7 +77,7 @@ export function IssueInline({ issue, config, prId, onPublished }: {
           </button>
         </div>
       </div>
-      <div className="text-[12px] text-neutral-800 leading-relaxed max-w-[70ch]" style={{ textWrap: 'pretty' }}>
+      <div className="text-[12px] text-neutral-800 leading-relaxed">
         <p>{renderMarkdown(issue.problem)}</p>
         {issue.suggestion && (
           <p className="mt-1.5 text-neutral-700"><strong>Sugerencia:</strong> {renderMarkdown(issue.suggestion)}</p>

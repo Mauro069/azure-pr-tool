@@ -32,7 +32,7 @@ export function InlineThread({ thread, config, prId, onReplySubmitted }: {
   const visibleComments = thread.comments.filter((c) => c.commentType !== 2 && !c.isDeleted);
 
   return (
-    <div className="ml-[44px] border-l-[3px] border-neutral-400 bg-neutral-50 px-3 py-2.5 my-1 space-y-2">
+    <div className="ml-[44px] border-l-[3px] border-blue-500 bg-blue-50 px-3 py-2.5 my-1 space-y-2">
       {visibleComments.map((comment) => (
         <div key={comment.id}>
           <div className="flex items-center gap-2 mb-1">

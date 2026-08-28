@@ -12,8 +12,8 @@ export function renderMarkdown(text: string): (string | JSX.Element)[] {
     const codeMatch = remaining.match(/`([^`]+)`/);
 
     const matches = [
-      boldMatch ? { index: boldMatch.index!, length: boldMatch[0].length, el: <strong key={key++} className="font-semibold text-white">{boldMatch[1]}</strong> } : null,
-      codeMatch ? { index: codeMatch.index!, length: codeMatch[0].length, el: <code key={key++} className="bg-gray-700 px-1 py-0.5 rounded text-[11px] font-mono text-purple-300">{codeMatch[1]}</code> } : null,
+      boldMatch ? { index: boldMatch.index!, length: boldMatch[0].length, el: <strong key={key++} className="font-semibold text-neutral-900">{boldMatch[1]}</strong> } : null,
+      codeMatch ? { index: codeMatch.index!, length: codeMatch[0].length, el: <code key={key++} className="bg-neutral-200 px-1 py-0.5 text-[11px] font-mono text-accent-700">{codeMatch[1]}</code> } : null,
     ].filter(Boolean).sort((a, b) => a!.index - b!.index);
 
     if (matches.length === 0) {
